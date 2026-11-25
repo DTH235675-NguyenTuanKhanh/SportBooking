@@ -1,0 +1,39 @@
+# .NET and Visual Studio
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+*.pfx
+*.p12
+*.key
+
+# Runtime data and generated outputs
+/SBK.sql
+/wwwroot/uploads/
+/artifacts/
+/outputs/
+__pycache__/
+.pytest_cache/
+
+# Local tooling and project deliverables
+/.agents/
+/.claude/
+/.codex/
+/.kilo/
+/.kilocode/
+/.specify/
+/Bao_cao_do_an_SportBooking_cap_nhat.docx
+/docs/final-acceptance/
+/docs/qr-transfer/
+/docs/sb-09/
+/docs/sb-17-18/
+/docs/ui-review/
+/docs/vnpay-sandbox/

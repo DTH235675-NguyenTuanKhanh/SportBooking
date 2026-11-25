@@ -1,0 +1,166 @@
+@* File: Views/Booking/Review.cshtml *@
+@model ReviewCreateViewModel
+@{
+    ViewData["Title"] = "Đánh giá sân";
+    ViewData["MetaDescription"] = "Đánh giá chất lượng sân sau buổi chơi.";
+
+    var ratingHints = new Dictionary<int, string>
+    {
+        [1] = "Rất tệ",
+        [2] = "Không tốt",
+        [3] = "Tạm được",
+        [4] = "Tốt",
+        [5] = "Tuyệt vời"
+    };
+
+    var hasImage = !string.IsNullOrWhiteSpace(Model.CourtImageUrl);
+}
+
+<div class="container py-4">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="MyBookings">Lịch đặt sân</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="Detail" asp-route-id="@Model.BookingId">@Model.BookingCode</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Đánh giá</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h1 class="h4 mb-1">Đánh giá sân @Model.CourtName</h1>
+                    <p class="text-muted">
+                        Cảm ơn bạn đã sử dụng sân. Đánh giá của bạn giúp những khách hàng khác chọn được sân phù hợp.
+                    </p>
+
+                    <!-- ============ THÔNG TIN BUỔI CHƠI ============ -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body d-flex gap-3 align-items-center">
+                            @if (hasImage)
+                            {
+                                <img class="booking-thumb" src="@Model.CourtImageUrl" alt="@Model.CourtName" />
+                            }
+                            else
+                            {
+                                <div class="booking-thumb-placeholder"><i class="bi bi-fire"></i></div>
+                            }
+                            <div>
+                                <div class="fw-semibold">@Model.CourtName</div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-calendar-event"></i> @Model.BookingDate.ToDate()
+                                    · @Model.TimeRangeText
+                                </div>
+                                <div class="booking-code mt-1">@Model.BookingCode</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============ FORM ============ -->
+                    <form asp-controller="Booking" asp-action="Review" method="post" data-disable-double-submit>
+                        <input type="hidden" asp-for="BookingId" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Chấm sao chất lượng sân</label>
+                            <div class="star-picker" data-target="#Rating" role="radiogroup" aria-label="Số sao đánh giá">
+                                @for (var star = 1; star <= 5; star++)
+                                {
+                                    <i class="bi bi-star-fill star" data-value="@star" role="radio"
+                                         tabindex="0" aria-label="@star sao - @ratingHints[star]"></i>
+                                }
+                            </div>
+                            <input type="hidden" asp-for="Rating" />
+                            <div class="mt-2">
+                                <span class="text-muted small" data-rating-label="Bạn chấm {0} sao">
+                                    @if (Model.Rating > 0)
+                                    {
+                                        <text>Bạn chấm @Model.Rating sao</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Chưa chọn số sao</text>
+                                    }
+                                </span>
+                            </div>
+                            <span asp-validation-for="Rating" class="text-danger small d-block mt-1"></span>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label small text-muted">Gợi ý nội dung nhận xét</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var hint in new[]
+                                 {
+                                     "Sân sạch, chất lượng mặt sân tốt",
+                                     "Chủ sân thân thiện, hỗ trợ nhanh",
+                                     "Ánh sáng tốt, chơi buổi tối thoải mái",
+                                     "Vệ sinh, nước uống đầy đủ",
+                                     "Nên cải thiện thêm về cơ sở vật chất"
+                                 })
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary js-hint"
+                                            data-hint="@hint">
+                                        @hint
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Comment" class="form-label"></label>
+                            <textarea asp-for="Comment" class="form-control" rows="5" maxlength="1000"
+                                      placeholder="Cảm nhận của bạn về mặt sân, dịch vụ, giá cả... (không bắt buộc)"></textarea>
+                            <div class="d-flex justify-content-between">
+                                <span asp-validation-for="Comment" class="text-danger small"></span>
+                                <span class="char-counter" data-counter-for="Comment"></span>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info small d-flex gap-2">
+                            <i class="bi bi-info-circle"></i>
+                            <div>
+                                Mỗi lịch đặt chỉ được đánh giá một lần và không thể sửa sau khi gửi.
+                                Đánh giá hiển thị công khai cùng tên tài khoản của bạn.
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Gửi đánh giá
+                            </button>
+                            <a class="btn btn-outline-secondary" asp-controller="Booking" asp-action="Detail"
+                               asp-route-id="@Model.BookingId">
+                                <i class="bi bi-arrow-left"></i> Quay lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            // Gõ phím trên ngôi sao (hỗ trợ bàn phím).
+            $('.star-picker .star').on('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    $(this).trigger('click');
+                }
+            });
+
+            $('.js-hint').on('click', function () {
+                var hint = $(this).data('hint');
+                var $textarea = $('#Comment');
+                var current = $textarea.val().trim();
+
+                $textarea.val(current.length === 0 ? hint : current + '. ' + hint).trigger('input').trigger('focus');
+            });
+        });
+    </script>
+}

@@ -1,0 +1,23 @@
+@model OwnerTimeSlotListViewModel
+@{ ViewData["Title"] = "Khung giờ và giá"; }
+<div class="container py-4">
+    <a asp-controller="Courts" asp-action="Index" asp-route-complexId="@Model.ComplexId">← Sân trong @Model.ComplexName</a>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 my-4">
+        <div><h1 class="h3">Khung giờ và giá — @Model.CourtName</h1><p class="text-muted mb-0">Giá trọn khung. Thứ Hai–Sáu dùng giá thường, thứ Bảy–Chủ nhật dùng giá cuối tuần; chưa áp dụng giá lễ.</p></div>
+        <a asp-action="Create" asp-route-courtId="@Model.CourtId" class="btn btn-primary">Thêm khung giờ</a>
+    </div>
+    @if (Model.Items.Count == 0)
+    {
+        <div class="card p-5 text-center"><h2 class="h5">Sân chưa có khung giờ</h2><p class="text-muted mb-0">Thêm khung giờ và giá để khách có thể đặt sân.</p></div>
+    }
+    else
+    {
+        <div class="card table-responsive"><table class="table align-middle mb-0">
+            <caption class="px-3">@Model.Items.Count khung giờ. Ngừng bán vẫn giữ nguyên các booking hiện có.</caption>
+            <thead><tr><th scope="col">Giờ</th><th scope="col">Thời lượng</th><th scope="col">Ngày thường</th><th scope="col">Cuối tuần</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+            <tbody>@foreach (var slot in Model.Items) {
+                <tr><td class="text-nowrap">@slot.StartTime.ToString(@"hh\:mm") – @slot.EndTime.ToString(@"hh\:mm")</td><td>@slot.DurationMinutes phút</td><td>@slot.PriceWeekday.ToString("#,##0") ₫</td><td>@slot.PriceWeekend.ToString("#,##0") ₫</td><td><span class="badge @(slot.IsActive ? "text-bg-success" : "text-bg-secondary")">@(slot.IsActive ? "Đang bán" : "Ngừng bán")</span></td><td><a asp-action="Edit" asp-route-courtId="@Model.CourtId" asp-route-id="@slot.Id" class="btn btn-outline-primary btn-sm" aria-label="Sửa khung @slot.StartTime.ToString(@"hh\:mm")">Chỉnh sửa</a></td></tr>
+            }</tbody>
+        </table></div>
+    }
+</div>

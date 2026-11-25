@@ -1,0 +1,138 @@
+@model BookingCreateViewModel
+@inject Microsoft.Extensions.Options.IOptions<BookingSettings> BookingOptions
+@{
+    ViewData["Title"] = "Đặt sân";
+    ViewData["MetaDescription"] = "Chọn ngày chơi, khung giờ và xác nhận đặt sân.";
+    var maxSlots = BookingOptions.Value.AllowMultipleConsecutiveSlots ? BookingOptions.Value.MaxSlotsPerBooking : 1;
+    var maxDate = ScheduleGuard.Now.Date.AddDays(BookingOptions.Value.MaxAdvanceBookingDays);
+    var searchReturnUrl = ViewData["SearchReturnUrl"] as string ?? Url.Action("Search", "Court");
+    ViewData["SelectedSlotIds"] = Model.SelectedTimeSlotIds;
+}
+<div class="container py-4 booking-page">
+    <nav aria-label="Breadcrumb"><ol class="breadcrumb small mb-3">
+        <li class="breadcrumb-item"><a href="@searchReturnUrl">Tìm sân</a></li>
+        <li class="breadcrumb-item"><a asp-controller="Court" asp-action="Detail" asp-route-id="@Model.CourtId" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@Model.BookingDate.ToString("yyyy-MM-dd")">@Model.CourtName</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Đặt sân</li>
+    </ol></nav>
+    <header class="page-heading">
+        <h1>Chọn ngày và khung giờ</h1>
+        <p class="text-muted mb-0">@Model.CourtName · @Model.ComplexName</p>
+    </header>
+    <form asp-controller="Booking" asp-action="Create" method="post" id="bookingForm" class="booking-layout" data-disable-double-submit novalidate tabindex="-1">
+        <div class="booking-fields">
+            <partial name="_FormErrors" />
+            <input type="hidden" asp-for="CourtId" />
+            <input type="hidden" name="returnUrl" value="@searchReturnUrl" />
+            <section class="card booking-section" aria-labelledby="dateTitle">
+                <h2 class="h5 section-heading" id="dateTitle"><span class="step-number" aria-hidden="true">1</span> Chọn ngày chơi</h2>
+                <div class="booking-date-layout">
+                    <div>
+                        <label asp-for="BookingDate" class="form-label">Ngày sử dụng sân</label>
+                        <input asp-for="BookingDate" class="form-control" type="date" required
+                               min="@Model.MinBookingDate.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")"
+                               aria-describedby="dateHelp dateError" />
+                        <span asp-validation-for="BookingDate" class="text-danger small" id="dateError"></span>
+                    </div>
+                    <div class="quick-date-list" aria-label="Chọn nhanh ngày chơi">
+                        @for (var i = 0; i < 7 && i <= BookingOptions.Value.MaxAdvanceBookingDays; i++)
+                        {
+                            var day = ScheduleGuard.Now.Date.AddDays(i);
+                            var isCurrent = day == Model.BookingDate.Date;
+                            <button type="button" class="btn @(isCurrent ? "btn-primary" : "btn-outline-primary") js-quick-date"
+                                    data-date="@day.ToString("yyyy-MM-dd")" aria-pressed="@isCurrent.ToString().ToLowerInvariant()">
+                                @(i == 0 ? "Hôm nay" : i == 1 ? "Ngày mai" : day.ToString("dd/MM"))
+                            </button>
+                        }
+                    </div>
+                </div>
+                <p class="form-text mb-0" id="dateHelp">Đặt từ @Model.MinBookingDate.ToString("dd/MM/yyyy") đến @maxDate.ToString("dd/MM/yyyy") · Giờ Việt Nam.</p>
+            </section>
+            <section class="card booking-section" aria-labelledby="slotsTitle">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <h2 class="h5 section-heading mb-0" id="slotsTitle"><span class="step-number" aria-hidden="true">2</span> Chọn khung giờ</h2>
+                    <span class="chip chip-sport">Đã chọn <span id="selectedSlotCount">0</span>/@maxSlots khung</span>
+                </div>
+                <p class="form-text mt-3" id="slotHelp">Chọn từ 1 đến @maxSlots khung <strong>liền nhau</strong>, cùng sân và cùng ngày. Khung rời cần đặt riêng. Giá bên dưới là giá trọn khung.</p>
+                <div class="timeslot-legend" aria-label="Chú thích trạng thái khung giờ">
+                    <span><span class="legend-box legend-available" aria-hidden="true"></span>Còn trống</span>
+                    <span><span class="legend-box legend-selected" aria-hidden="true"></span>Đang chọn</span>
+                    <span><span class="legend-box legend-booked" aria-hidden="true"></span>Đã đặt</span>
+                    <span><span class="legend-box legend-past" aria-hidden="true"></span>Đã qua</span>
+                    <span><span class="legend-box legend-maintenance" aria-hidden="true"></span>Bảo trì</span>
+                </div>
+                <div class="slot-load-message" id="slotLoadStatus" role="status" aria-atomic="true"></div>
+                <button class="btn btn-outline-primary mb-3" id="retryTimeSlots" type="button" hidden><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Thử tải lại lịch</button>
+                <div class="timeslot-grid" id="timeSlotGrid" data-max-slots="@maxSlots" data-court-id="@Model.CourtId"
+                     role="group" aria-labelledby="slotsTitle" aria-describedby="slotHelp slotError" tabindex="-1">
+                    @if (Model.TimeSlots.Count == 0)
+                    {
+                        <p class="slot-empty text-muted mb-0">Sân chưa có khung giờ đặt. Vui lòng chọn sân khác.</p>
+                    }
+                    @foreach (var slot in Model.TimeSlots)
+                    {
+                        <partial name="_TimeSlot" model="slot" />
+                    }
+                </div>
+                <span asp-validation-for="SelectedTimeSlotIds" class="text-danger small d-block mt-2" id="slotError" role="status"></span>
+            </section>
+            <section class="card booking-section" aria-labelledby="paymentTitle">
+                <h2 class="h5 section-heading" id="paymentTitle"><span class="step-number" aria-hidden="true">3</span> Thanh toán &amp; ghi chú</h2>
+                <fieldset id="paymentChoices" aria-describedby="paymentError" tabindex="-1">
+                    <legend class="form-label fs-6">Phương thức thanh toán</legend>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <input class="btn-check" type="radio" asp-for="PaymentMethod" id="payOnline" value="BankTransfer"
+                                   disabled="@(!Model.TransferAvailable)" aria-describedby="onlineHelp paymentError" />
+                            <label class="pay-method-card d-block mb-0" for="payOnline">
+                                <span class="d-flex align-items-center gap-2 fw-semibold"><i class="bi bi-qr-code" aria-hidden="true"></i> Chuyển khoản qua QR</span>
+                                <span class="d-block text-muted small mt-2" id="onlineHelp">@(Model.TransferAvailable
+                                    ? "Chuyển vào tài khoản chủ sân và chờ chủ sân xác nhận."
+                                    : "Chủ sân chưa bật chuyển khoản. Vui lòng thanh toán tại quầy.")</span>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <input class="btn-check" type="radio" asp-for="PaymentMethod" id="payCounter" value="Counter" aria-describedby="counterHelp paymentError" />
+                            <label class="pay-method-card d-block mb-0" for="payCounter">
+                                <span class="d-flex align-items-center gap-2 fw-semibold"><i class="bi bi-cash-coin" aria-hidden="true"></i> Thanh toán tại quầy</span>
+                                <span class="d-block text-muted small mt-2" id="counterHelp">Thanh toán với quản lý sân trước giờ chơi.</span>
+                            </label>
+                        </div>
+                    </div>
+                    <span asp-validation-for="PaymentMethod" class="text-danger small d-block mt-2" id="paymentError"></span>
+                </fieldset>
+                <div class="mt-4">
+                    <label asp-for="Notes" class="form-label">Ghi chú <span class="text-muted fw-normal">(không bắt buộc)</span></label>
+                    <textarea asp-for="Notes" class="form-control" rows="3" maxlength="500" placeholder="Thông tin bạn muốn gửi đến chủ sân" aria-describedby="notesHelp notesError"></textarea>
+                    <div class="d-flex justify-content-between gap-2 mt-1"><span class="form-text mt-0" id="notesHelp">Tối đa 500 ký tự.</span><span class="char-counter" data-counter-for="Notes"></span></div>
+                    <span asp-validation-for="Notes" class="text-danger small" id="notesError"></span>
+                </div>
+            </section>
+        </div>
+        <partial name="_BookingSummary" model="Model" />
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(function () {
+            var $date = $('#BookingDate');
+            $date.on('change', function () {
+                $('.js-quick-date').each(function () {
+                    var selected = $(this).data('date') === $date.val();
+                    $(this).toggleClass('btn-primary', selected).toggleClass('btn-outline-primary', !selected).attr('aria-pressed', String(selected));
+                });
+                $('#summaryDate').text(formatDate($date.val()));
+                if (!this.checkValidity()) {
+                    invalidateTimeSlots('Chọn ngày trong khoảng cho phép để tải lịch sân.');
+                    return;
+                }
+                $('#dateError').text('');
+                $(this).removeAttr('aria-invalid');
+                reloadTimeSlots($('#CourtId').val(), $date.val());
+            });
+            $('.js-quick-date').on('click', function () { $date.val($(this).data('date')).trigger('change'); });
+            $('#retryTimeSlots').on('click', function () { $date.trigger('change'); });
+            $('input[name="PaymentMethod"]').on('change', updateBookingSummary);
+        });
+    </script>
+}

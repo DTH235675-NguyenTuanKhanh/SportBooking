@@ -1,0 +1,27 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var inComplex = controller is "Complexes" or "Courts" or "TimeSlots";
+}
+<div class="container pt-4">
+    <div class="card p-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <a class="fw-bold text-decoration-none" asp-area="Owner" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-shop me-2" aria-hidden="true"></i>Khu vực chủ sân
+            </a>
+            <nav class="nav nav-pills gap-2 flex-wrap" aria-label="Menu chủ sân">
+                <a class="nav-link @(controller == "Dashboard" ? "active" : "")" aria-current="@(controller == "Dashboard" ? "page" : null)" asp-area="Owner" asp-controller="Dashboard" asp-action="Index">Tổng quan</a>
+                <a class="nav-link @(controller == "Bookings" ? "active" : "")" aria-current="@(controller == "Bookings" ? "page" : null)" asp-area="Owner" asp-controller="Bookings" asp-action="Index">Lịch đặt sân</a>
+                <a class="nav-link @(inComplex ? "active" : "")" aria-current="@(inComplex ? "page" : null)" asp-area="Owner" asp-controller="Complexes" asp-action="Index">Cụm sân</a>
+                <a class="nav-link @(controller == "Reviews" ? "active" : "")" aria-current="@(controller == "Reviews" ? "page" : null)" asp-area="Owner" asp-controller="Reviews" asp-action="Index">Đánh giá</a>
+                <a class="nav-link @(controller == "Revenue" ? "active" : "")" aria-current="@(controller == "Revenue" ? "page" : null)" asp-area="Owner" asp-controller="Revenue" asp-action="Index">Doanh thu</a>
+                <a class="nav-link" asp-area="" asp-controller="Profile" asp-action="Index">Hồ sơ</a>
+                <a class="nav-link" asp-area="" asp-controller="OwnerTransfer" asp-action="Edit">Chuyển khoản QR</a>
+            </nav>
+        </div>
+    </div>
+</div>
+@RenderBody()
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

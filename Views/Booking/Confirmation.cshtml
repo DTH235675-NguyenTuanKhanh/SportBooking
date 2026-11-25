@@ -1,0 +1,128 @@
+@* File: Views/Booking/Confirmation.cshtml
+   Model: danh sách booking của cùng một mã nhóm (ViewBag.GroupCode). *@
+@model List<BookingListItemViewModel>
+@{
+    ViewData["Title"] = "Đặt sân thành công";
+    ViewData["MetaDescription"] = "Xác nhận kết quả đặt sân.";
+
+    var groupCode = ViewBag.GroupCode as string ?? string.Empty;
+    var total = Model.Sum(b => b.TotalAmount);
+    var first = Model.FirstOrDefault();
+    var isOnline = Model.Any(b => b.PaymentMethodText.Contains("VNPay", StringComparison.OrdinalIgnoreCase));
+    var pendingCount = Model.Count(b => b.Status == (int)BookingStatus.Pending);
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="success-hero">
+                    <div class="success-hero-icon"><i class="bi bi-check2-circle"></i></div>
+                    <h1 class="h3 fw-bold">Đặt sân thành công!</h1>
+                    <p class="text-muted mb-3">
+                        Cảm ơn bạn đã tin tưởng SportBooking. Vui lòng lưu lại mã đặt sân dưới đây.
+                    </p>
+                    <span class="code-badge">@groupCode</span>
+                </div>
+
+                <div class="card-body p-4 pt-0">
+                    @if (first?.BankTransferGroupCode is { } transferCode)
+                    {
+                        <a class="btn btn-primary mb-3" asp-controller="BankTransfer" asp-action="Details" asp-route-code="@transferCode">Chi tiết chuyển khoản</a>
+                    }
+                    else if (pendingCount > 0 && isOnline)
+                    {
+                        <div class="alert alert-warning d-flex gap-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <div>
+                                Lịch đặt của bạn đang ở trạng thái <strong>Chờ xác nhận</strong> vì chưa hoàn tất thanh toán online.
+                                Nếu quá hạn, hệ thống sẽ tự động hủy và giải phóng khung giờ.
+                            </div>
+                        </div>
+                    }
+                    else if (pendingCount > 0)
+                    {
+                        <div class="alert alert-info d-flex gap-2">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <div>
+                                Bạn chọn <strong>thanh toán tại quầy</strong>. Vui lòng tới sớm và thanh toán với bộ phận quản lý
+                                trước giờ chơi để được xác nhận lịch.
+                            </div>
+                        </div>
+                    }
+
+                    <h2 class="h6 text-uppercase text-muted small mb-3">Chi tiết @Model.Count khung giờ đã đặt</h2>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table align-middle mb-0 booking-confirmation-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã đặt sân</th>
+                                    <th>Sân</th>
+                                    <th>Ngày · Giờ</th>
+                                    <th>Trạng thái</th>
+                                    <th class="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in Model)
+                                {
+                                    <tr>
+                                        <td class="booking-code" data-label="Mã đặt sân"><span>@booking.BookingCode</span></td>
+                                        <td data-label="Sân">
+                                            <div>
+                                                <div class="fw-semibold">@booking.CourtName</div>
+                                                <div class="text-muted small">@booking.ComplexName</div>
+                                            </div>
+                                        </td>
+                                        <td data-label="Ngày · Giờ">
+                                            <div>
+                                                @booking.BookingDate.ToString("dd/MM/yyyy")
+                                                <div class="text-muted small">@booking.TimeRangeText</div>
+                                            </div>
+                                        </td>
+                                        <td data-label="Trạng thái"><span class="badge @booking.StatusBadgeClass">@booking.StatusText</span></td>
+                                        <td class="text-end fw-semibold" data-label="Thành tiền"><span>@booking.TotalAmount.ToString("#,##0") ₫</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4">Tổng cộng</th>
+                                    <th class="text-end text-accent fs-5">@total.ToString("#,##0") ₫</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <h3 class="h6">Bước tiếp theo</h3>
+                            <ol class="mb-0 ps-3 small text-muted">
+                                <li>Kiểm tra lại ngày, khung giờ và địa chỉ sân ở trên.</li>
+                                <li>Thanh toán theo phương thức đã chọn (online hoặc tại quầy).</li>
+                                <li>Tới sân trước giờ chơi 10 phút và đọc mã đặt sân cho bộ phận quản lý.</li>
+                                <li>Sau khi chơi xong, hãy đánh giá sân để giúp cộng đồng có thêm thông tin.</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        @if (first is not null)
+                        {
+                            <a class="btn btn-primary" asp-controller="Booking" asp-action="Detail" asp-route-id="@first.Id">
+                                <i class="bi bi-eye"></i> Xem chi tiết đặt sân
+                            </a>
+                        }
+                        <a class="btn btn-outline-primary" asp-controller="Booking" asp-action="MyBookings">
+                            <i class="bi bi-calendar-check"></i> Lịch đặt của tôi
+                        </a>
+                        <a class="btn btn-outline-secondary" asp-controller="Court" asp-action="Search">
+                            <i class="bi bi-search"></i> Đặt thêm sân khác
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,45 @@
+@model OwnerDashboardViewModel
+@{ ViewData["Title"] = "Tổng quan chủ sân"; }
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3">Tổng quan chủ sân</h1>
+            <p class="text-muted mb-0">Xin chào @Model.OwnerName. Lịch vận hành ngày @Model.Today.ToString("dd/MM/yyyy").</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-primary" asp-area="Owner" asp-controller="Complexes" asp-action="Index">Quản lý cụm sân</a>
+            <a class="btn btn-primary" asp-area="Owner" asp-controller="Bookings" asp-action="Index">Quản lý lịch đặt sân</a>
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        @foreach (var stat in new[] { ("Cụm sân", Model.ComplexCount), ("Sân hiện có", Model.CourtCount), ("Lượt đặt hôm nay", Model.TodayBookings.TotalCount), ("Chờ thu tại quầy", Model.PendingCount) })
+        {
+            <div class="col-6 col-lg-3"><div class="card p-3 h-100"><div class="text-muted">@stat.Item1</div><div class="fs-2 fw-bold">@stat.Item2</div></div></div>
+        }
+    </div>
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+            <h2 class="h5 mb-0">Lịch đặt hôm nay</h2>
+            <a asp-area="Owner" asp-controller="Bookings" asp-action="Index" asp-route-FromDate="@Model.Today.ToString("yyyy-MM-dd")" asp-route-ToDate="@Model.Today.ToString("yyyy-MM-dd")">Xem tất cả</a>
+        </div>
+        @if (Model.TodayBookings.Bookings.Count == 0)
+        {
+            <div class="text-center p-5"><i class="bi bi-calendar-check fs-1 text-primary" aria-hidden="true"></i><p class="text-muted mt-3 mb-0">Chưa có lịch đặt sân hôm nay.</p></div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <caption class="px-3">Hiển thị tối đa 5 lượt đặt. Mỗi khung giờ là một lượt đặt.</caption>
+                    <thead><tr><th scope="col">Mã đặt</th><th scope="col">Khách hàng</th><th scope="col">Sân</th><th scope="col">Giờ</th><th scope="col">Trạng thái</th></tr></thead>
+                    <tbody>
+                        @foreach (var booking in Model.TodayBookings.Bookings)
+                        {
+                            <tr><td>@booking.BookingCode</td><td>@booking.CustomerName</td><td>@booking.CourtName<div class="small text-muted">@booking.ComplexName</div></td><td class="text-nowrap">@booking.StartDateTime.ToString("HH:mm") – @booking.EndDateTime.ToString("HH:mm")</td><td><span class="badge @booking.StatusBadgeClass">@booking.StatusText</span></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

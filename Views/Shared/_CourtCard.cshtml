@@ -1,0 +1,76 @@
+@* File: Views/Shared/_CourtCard.cshtml
+   Card sân dùng chung: trang chủ (sân nổi bật), kết quả tìm kiếm, sân khác cùng cụm. *@
+@model CourtCardViewModel
+@{
+    var searchReturnUrl = ViewData["SearchReturnUrl"] as string;
+}
+<div class="card court-card h-100">
+    <a class="court-card-media" asp-controller="Court" asp-action="Detail" asp-route-id="@Model.Id"
+       asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@(ViewData["SearchBookingDate"] as string)">
+        <span class="visually-hidden">Xem chi tiết @Model.Name</span>
+        <partial name="_CourtPhoto" model="@(new CourtPhotoViewModel(Model.Name, Model.SportTypeName, Model.Description, Model.ImageUrl))" />
+
+        @if (Model.Status != 0)
+        {
+            <span class="badge bg-danger court-card-flag">Đang bảo trì</span>
+        }
+        else if (Model.AvailableSlotsCount > 0)
+        {
+            <span class="badge badge-completed court-card-flag">
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i> @Model.AvailableSlotsCount khung giờ trống
+            </span>
+        }
+    </a>
+
+    <div class="card-body court-card-body">
+        <div class="court-card-topline">
+            <span class="chip chip-sport">
+                <partial name="_SportIcon" model="Model.SportTypeName" />
+                @Model.SportTypeName
+            </span>
+            <span class="card-rating-compact">
+                @if (Model.ReviewCount > 0)
+                {
+                    <i class="bi bi-star-fill" aria-hidden="true"></i>
+                    <span><strong>@Model.AverageRating.ToString("0.0")</strong><span class="visually-hidden"> trên 5 sao</span> <span class="text-muted">(@Model.ReviewCount)</span></span>
+                }
+                else
+                {
+                    <span class="text-muted">Chưa có đánh giá</span>
+                }
+            </span>
+        </div>
+
+        <h3 class="court-name">
+            <a asp-controller="Court" asp-action="Detail" asp-route-id="@Model.Id" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@(ViewData["SearchBookingDate"] as string)">@Model.Name</a>
+        </h3>
+
+        <p class="court-location">
+            <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+            <span>@Model.Location</span>
+        </p>
+
+        <p class="court-complex">
+            <i class="bi bi-building" aria-hidden="true"></i> @Model.ComplexName
+        </p>
+
+        <div class="court-card-footer">
+            <div>
+                <div class="text-muted small">Giá từ</div>
+                @if (Model.MinPrice > 0)
+                {
+                    <div class="court-price mb-0">@Model.MinPrice.ToString("N0") <span>₫</span></div>
+                    <div class="text-muted small">/khung</div>
+                }
+                else
+                {
+                    <div class="small fw-semibold">Chưa công bố giá</div>
+                }
+            </div>
+            <a asp-controller="Court" asp-action="Detail" asp-route-id="@Model.Id" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@(ViewData["SearchBookingDate"] as string)"
+               class="btn btn-outline-primary" aria-label="Xem sân @Model.Name">
+                Xem sân <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </div>
+</div>

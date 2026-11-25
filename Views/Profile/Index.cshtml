@@ -1,0 +1,182 @@
+@* File: Views/Profile/Index.cshtml *@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+
+    var roleDisplay = Model.CurrentRole switch
+    {
+        AppConstants.Roles.Admin => "Quản trị viên",
+        AppConstants.Roles.Owner => "Chủ sân",
+        _ => "Khách hàng"
+    };
+
+    var roleBadgeClass = Model.CurrentRole switch
+    {
+        AppConstants.Roles.Admin => "bg-danger",
+        AppConstants.Roles.Owner => "bg-warning text-dark",
+        _ => "bg-primary"
+    };
+}
+
+<!-- Profile Header -->
+<div class="profile-header">
+    <div class="container">
+        <div class="d-flex align-items-center gap-4">
+            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+            {
+                <img src="@Model.AvatarUrl" alt="Avatar" class="profile-avatar-large" />
+            }
+            else
+            {
+                <div class="profile-avatar-placeholder">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+            }
+            <div>
+                <h2 class="mb-2">@Model.FullName</h2>
+                <p class="mb-2 opacity-75">
+                    <i class="bi bi-envelope"></i> @Model.Email
+                </p>
+                <span class="badge @roleBadgeClass">@roleDisplay</span>
+                @if (Model.CurrentRole == AppConstants.Roles.Owner)
+                {
+                    @if (Model.IsApproved)
+                    {
+                        <span class="badge bg-success ms-1">
+                            <i class="bi bi-patch-check-fill"></i> Đã được duyệt
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary ms-1">
+                            <i class="bi bi-hourglass-split"></i> Chờ duyệt
+                        </span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-vcard"></i> Thông tin cá nhân
+                    </h5>
+                    <a asp-controller="Profile" asp-action="Edit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-pencil"></i> Chỉnh sửa
+                    </a>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4 text-secondary">Họ và tên</dt>
+                        <dd class="col-sm-8">@Model.FullName</dd>
+
+                        <dt class="col-sm-4 text-secondary">Email</dt>
+                        <dd class="col-sm-8">@Model.Email</dd>
+
+                        <dt class="col-sm-4 text-secondary">Số điện thoại</dt>
+                        <dd class="col-sm-8">
+                            @(string.IsNullOrEmpty(Model.PhoneNumber) ? "Chưa cập nhật" : Model.PhoneNumber)
+                        </dd>
+
+                        <dt class="col-sm-4 text-secondary">Ngày sinh</dt>
+                        <dd class="col-sm-8">
+                            @(Model.DateOfBirth.HasValue
+                                ? Model.DateOfBirth.Value.ToString(AppConstants.DateFormat)
+                                : "Chưa cập nhật")
+                        </dd>
+
+                        <dt class="col-sm-4 text-secondary">Địa chỉ</dt>
+                        <dd class="col-sm-8">
+                            @(string.IsNullOrEmpty(Model.Address) ? "Chưa cập nhật" : Model.Address)
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            @* Khối thông tin doanh nghiệp chỉ hiển thị với Chủ sân *@
+            @if (Model.CurrentRole == AppConstants.Roles.Owner)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-building"></i> Thông tin doanh nghiệp
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4 text-secondary">Tên doanh nghiệp</dt>
+                            <dd class="col-sm-8">
+                                @(string.IsNullOrEmpty(Model.BusinessName) ? "Chưa cập nhật" : Model.BusinessName)
+                            </dd>
+
+                            <dt class="col-sm-4 text-secondary">SĐT kinh doanh</dt>
+                            <dd class="col-sm-8">
+                                @(string.IsNullOrEmpty(Model.BusinessPhone) ? "Chưa cập nhật" : Model.BusinessPhone)
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Cài đặt tài khoản
+                    </h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a asp-controller="Profile" asp-action="Edit" class="list-group-item list-group-item-action">
+                        <i class="bi bi-pencil-square text-primary"></i> Cập nhật hồ sơ
+                    </a>
+                    <a asp-controller="Account" asp-action="ChangePassword" class="list-group-item list-group-item-action">
+                        <i class="bi bi-key text-primary"></i> Đổi mật khẩu
+                    </a>
+                    @if (Model.CurrentRole == AppConstants.Roles.Customer)
+                    {
+                        <a asp-controller="Booking" asp-action="MyBookings" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar-check text-primary"></i> Lịch sử đặt sân
+                        </a>
+                    }
+                    @if (Model.CurrentRole == AppConstants.Roles.Owner)
+                    {
+                        <a asp-controller="OwnerTransfer" asp-action="Edit" class="list-group-item list-group-item-action">
+                            <i class="bi bi-qr-code text-primary"></i> Thông tin chuyển khoản QR
+                        </a>
+                        <a asp-area="Owner" asp-controller="Bookings" asp-action="Index" class="list-group-item list-group-item-action">
+                            <i class="bi bi-calendar2-check text-primary"></i> Quản lý lịch đặt sân
+                        </a>
+                    }
+                    @if (Model.CurrentRole == AppConstants.Roles.Admin)
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="list-group-item list-group-item-action">
+                            <i class="bi bi-shield-check text-primary"></i> Trang quản trị
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-check"></i> Bảo mật
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-secondary mb-3">
+                        Để bảo vệ tài khoản, hãy đổi mật khẩu định kỳ và không chia sẻ thông tin đăng nhập.
+                    </p>
+                    <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-key"></i> Đổi mật khẩu ngay
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

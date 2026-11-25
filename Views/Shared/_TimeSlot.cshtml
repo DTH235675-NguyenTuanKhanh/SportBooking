@@ -1,0 +1,25 @@
+@model TimeSlotAvailabilityViewModel
+@{
+    var selectedIds = ViewData["SelectedSlotIds"] as List<int> ?? new List<int>();
+    var isChecked = Model.IsSelectable && selectedIds.Contains(Model.TimeSlotId);
+    var statusText = isChecked ? "Đang chọn" : Model.Status switch
+    {
+        TimeSlotStatus.Booked => "Đã đặt",
+        TimeSlotStatus.Maintenance => "Bảo trì",
+        TimeSlotStatus.Past => "Đã qua",
+        _ => "Còn trống"
+    };
+}
+<label class="timeslot-item @Model.StatusClass @(!Model.IsSelectable ? "timeslot-disabled" : "") @(isChecked ? "timeslot-selected" : "")"
+       data-slot-id="@Model.TimeSlotId" data-price="@Model.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+       data-selectable="@Model.IsSelectable.ToString().ToLowerInvariant()">
+    <input type="checkbox" name="SelectedTimeSlotIds" value="@Model.TimeSlotId" checked="@isChecked"
+           disabled="@(!Model.IsSelectable)" aria-describedby="slotHelp slotError" />
+    @if (Model.IsSelectable)
+    {
+        <input type="hidden" name="SlotQuotes[@Model.TimeSlotId]" value="@Model.Quote" />
+    }
+    <span class="timeslot-time">@Model.TimeRangeText</span>
+    <span class="timeslot-price">@Model.Price.ToString("N0") ₫<span class="visually-hidden">/khung</span></span>
+    <span class="timeslot-meta">@statusText</span>
+</label>

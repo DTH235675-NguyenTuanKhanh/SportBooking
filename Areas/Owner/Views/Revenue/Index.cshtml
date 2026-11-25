@@ -1,0 +1,78 @@
+@model OwnerRevenueViewModel
+@{
+    ViewData["Title"] = "Doanh thu sân";
+}
+<div class="container py-4">
+    <h1 class="h3 mb-2">Doanh thu sân</h1>
+    <p class="text-muted">Thống kê theo ngày ghi nhận thu hoặc hoàn tiền, giờ Việt Nam. Khoản chờ hoàn vẫn nằm trong tổng thu.</p>
+    <form method="get" class="card p-3 mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-6 col-lg-2">
+                <label for="From" class="form-label">Từ ngày</label>
+                <input type="date" class="form-control" id="From" name="From" value="@Model.Filter.From?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6 col-lg-2">
+                <label for="To" class="form-label">Đến ngày</label>
+                <input type="date" class="form-control" id="To" name="To" value="@Model.Filter.To?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label for="ComplexId" class="form-label">Cụm sân</label>
+                <select class="form-select" id="ComplexId" name="ComplexId">
+                    <option value="">Tất cả cụm sân</option>
+                    @foreach (var option in Model.Complexes)
+                    {
+                        <option value="@option.Id" selected="@(option.Id == Model.Filter.ComplexId)">@option.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label for="CourtId" class="form-label">Sân</label>
+                <select class="form-select" id="CourtId" name="CourtId">
+                    <option value="">Tất cả sân</option>
+                    @foreach (var option in Model.Courts)
+                    {
+                        <option value="@option.Id" selected="@(option.Id == Model.Filter.CourtId)">@option.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 d-grid"><button class="btn btn-primary" type="submit">Xem báo cáo</button></div>
+        </div>
+    </form>
+    @if (Model.Error is { } error)
+    {
+        <p class="alert alert-danger" role="alert">@error</p>
+    }
+    else
+    {
+        <dl class="row g-2 mb-3">
+            <div class="col-md-4"><div class="card p-3 h-100" id="received"><dt>Tổng thu đã ghi nhận</dt><dd class="fs-4 mb-0 text-break">@Model.Received.ToString("N0") ₫</dd></div></div>
+            <div class="col-md-4"><div class="card p-3 h-100" id="refunded"><dt>Đã hoàn</dt><dd class="fs-4 mb-0 text-break">@Model.Refunded.ToString("N0") ₫</dd></div></div>
+            <div class="col-md-4"><div class="card p-3 h-100" id="net"><dt>Doanh thu ròng</dt><dd class="fs-4 mb-0 text-break">@Model.Net.ToString("N0") ₫</dd></div></div>
+        </dl>
+        @if (Model.UndatedPayments > 0 || Model.BookingsWithoutPayment > 0)
+        {
+            <p class="alert alert-warning">Trong lịch sử sân đã chọn có @Model.UndatedPayments giao dịch thiếu mốc thu hoặc hoàn và @Model.BookingsWithoutPayment đơn thiếu bản ghi thanh toán. Các khoản thiếu chứng từ hoặc thời điểm chưa được cộng vào ngày báo cáo.</p>
+        }
+        @if (Model.Days.Count == 0)
+        {
+            <p class="card p-3">Không có khoản thu hoặc hoàn nào trong khoảng đã chọn.</p>
+        }
+        else
+        {
+            <section class="card p-3">
+                <h2 class="h5">Thu và hoàn theo ngày</h2>
+                <div class="table-responsive" tabindex="0" role="region" aria-label="Bảng doanh thu theo ngày">
+                    <table class="table mb-0">
+                        <thead><tr><th scope="col">Ngày</th><th scope="col" class="text-end">Thu (₫)</th><th scope="col" class="text-end">Hoàn (₫)</th><th scope="col" class="text-end">Ròng (₫)</th></tr></thead>
+                        <tbody>
+                            @foreach (var day in Model.Days)
+                            {
+                                <tr><th scope="row">@day.Day.ToString("dd/MM/yyyy")</th><td class="text-end">@day.Received.ToString("N0")</td><td class="text-end">@day.Refunded.ToString("N0")</td><td class="text-end">@day.Net.ToString("N0")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
+</div>

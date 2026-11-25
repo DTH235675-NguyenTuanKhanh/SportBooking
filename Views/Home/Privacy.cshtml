@@ -1,0 +1,86 @@
+﻿@* File: Views/Home/Privacy.cshtml *@
+@{
+    ViewData["Title"] = "Chính sách & điều khoản";
+    ViewData["MetaDescription"] = "Chính sách đặt sân, quy định hủy sân, hoàn tiền, thanh toán và đánh giá trên SportBooking.";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <h1 class="section-title">Chính sách &amp; điều khoản sử dụng</h1>
+            <p class="text-muted">
+                Cập nhật lần cuối: @DateTime.Today.ToString("dd/MM/yyyy").
+                Khi sử dụng SportBooking, bạn đồng ý với các quy định dưới đây.
+            </p>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 card-title"><i class="bi bi-calendar-check text-primary"></i> 1. Đặt sân</h2>
+                    <ul class="mb-0">
+                        <li>Bạn có thể đặt sân trước tối đa <strong>30 ngày</strong> kể từ ngày hiện tại.</li>
+                        <li>Mỗi lần đặt tối đa <strong>6 khung giờ</strong> và chỉ áp dụng cho cùng một sân, cùng một ngày.</li>
+                        <li>Khung giờ đã trôi qua, khung giờ đã có người đặt hoặc sân đang bảo trì không thể đặt.</li>
+                        <li>Lịch đặt của bạn chỉ được giữ khi trạng thái chuyển sang <strong>Đã xác nhận</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 card-title"><i class="bi bi-credit-card text-primary"></i> 2. Thanh toán</h2>
+                    <ul class="mb-0">
+                        <li><strong>Thanh toán online (VNPay):</strong> booking ở trạng thái <em>Chờ xác nhận</em> trong 15 phút.
+                            Hết thời hạn mà chưa thanh toán, hệ thống tự động hủy và giải phóng khung giờ.</li>
+                        <li><strong>Thanh toán tại quầy:</strong> bạn tới sân và trả tiền cho bộ phận quản lý trước khi chơi.</li>
+                        <li>Giá hiển thị là giá của từng khung giờ, đã bao gồm phí sân; ngày cuối tuần có thể cao hơn ngày thường.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 card-title"><i class="bi bi-x-circle text-primary"></i> 3. Hủy sân và hoàn tiền</h2>
+                    <ul class="mb-0">
+                        <li>Bạn chỉ hủy được lịch đặt ở trạng thái <strong>Đã xác nhận</strong>.</li>
+                        <li>Thời điểm hủy phải còn <strong>cách giờ bắt đầu tối thiểu 4 giờ</strong>.</li>
+                        <li>Lịch đặt đã thanh toán sau khi hủy sẽ chuyển sang <strong>Chờ hoàn tiền</strong>.
+                            Vui lòng liên hệ chủ sân để xử lý; chỉ ghi nhận đã hoàn tiền khi việc trả tiền đã hoàn tất.</li>
+                        <li>Vui lòng nhập lý do hủy rõ ràng — chủ sân sẽ nhận được thông báo kèm lý do này.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 card-title"><i class="bi bi-star text-primary"></i> 4. Đánh giá</h2>
+                    <ul class="mb-0">
+                        <li>Mỗi lịch đặt chỉ được đánh giá <strong>một lần</strong>, sau khi lịch chuyển sang <em>Hoàn thành</em>.</li>
+                        <li>Điểm đánh giá từ 1 tới 5 sao; nội dung nhận xét không được chứa ngôn từ vi phạm pháp luật.</li>
+                        <li>Chủ sân có quyền phản hồi công khai; đánh giá vi phạm có thể bị ẩn bởi quản trị viên.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h5 card-title"><i class="bi bi-shield-lock text-primary"></i> 5. Dữ liệu cá nhân</h2>
+                    <p class="mb-0">
+                        Họ tên, số điện thoại và email của bạn được sử dụng cho việc xác nhận lịch đặt và liên hệ khi cần.
+                        Số điện thoại của bạn được hiển thị cho chủ sân của lịch đặt mà bạn tạo.
+                        Bạn có thể chỉnh sửa hoặc cập nhật thông tin bất kỳ lúc nào trong trang
+                        <a asp-controller="Profile" asp-action="Edit">Hồ sơ cá nhân</a>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-primary" asp-controller="Court" asp-action="Search">
+                    <i class="bi bi-search"></i> Tìm sân ngay
+                </a>
+                <a class="btn btn-outline-primary" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-arrow-left"></i> Về trang chủ
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

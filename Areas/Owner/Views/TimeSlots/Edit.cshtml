@@ -1,0 +1,24 @@
+@model OwnerTimeSlotEditViewModel
+@{
+    var creating = ViewContext.RouteData.Values["action"]?.ToString() == "Create";
+    ViewData["Title"] = creating ? "Thêm khung giờ" : "Sửa khung giờ";
+}
+<div class="container py-4">
+    <a asp-action="Index" asp-route-courtId="@Model.CourtId">← Khung giờ của @Model.CourtName</a>
+    <h1 class="h3 my-4">@ViewData["Title"]</h1>
+    <form class="card p-4" method="post" asp-action="@(creating ? "Create" : "Edit")" asp-route-courtId="@Model.CourtId" asp-route-id="@ViewContext.RouteData.Values["id"]">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="row">
+            @* Input time mặc định theo phút. jQuery Validation không xử lý thuộc tính step cho type time. *@
+            <div class="col-md-6 mb-3"><label asp-for="StartTime" class="form-label"></label><input asp-for="StartTime" type="time" asp-format="{0:hh\:mm}" class="form-control" /><span asp-validation-for="StartTime" class="text-danger"></span></div>
+            <div class="col-md-6 mb-3"><label asp-for="EndTime" class="form-label"></label><input asp-for="EndTime" type="time" asp-format="{0:hh\:mm}" class="form-control" /><span asp-validation-for="EndTime" class="text-danger"></span></div>
+            <div class="col-md-6 mb-3"><label asp-for="PriceWeekday" class="form-label"></label><input asp-for="PriceWeekday" asp-format="{0:0}" type="number" min="1" step="1" class="form-control" /><span asp-validation-for="PriceWeekday" class="text-danger"></span></div>
+            <div class="col-md-6 mb-3"><label asp-for="PriceWeekend" class="form-label"></label><input asp-for="PriceWeekend" asp-format="{0:0}" type="number" min="1" step="1" class="form-control" /><span asp-validation-for="PriceWeekend" class="text-danger"></span></div>
+        </div>
+        <p class="form-text">Khung trong cùng ngày, không qua nửa đêm. Giá nguyên VNĐ cho toàn bộ khung, chưa áp dụng giá lễ.</p>
+        <div class="form-check mb-3"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label"></label></div>
+        <div class="alert alert-info">Không được đổi giờ khi còn booking chưa kết thúc. Đổi giá chỉ áp dụng cho lượt đặt mới. Ngừng bán không hủy booking cũ.</div>
+        <div class="d-flex gap-2"><button class="btn btn-primary" type="submit">Lưu khung giờ</button><a asp-action="Index" asp-route-courtId="@Model.CourtId" class="btn btn-outline-secondary">Hủy</a></div>
+    </form>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

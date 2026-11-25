@@ -1,0 +1,208 @@
+@model HomeViewModel
+@inject Microsoft.Extensions.Options.IOptions<BookingSettings> BookingOptions
+@{
+    ViewData["Title"] = "Trang chủ";
+    var today = ScheduleGuard.Now.Date;
+    var maxDate = today.AddDays(BookingOptions.Value.MaxAdvanceBookingDays);
+}
+<section class="hero-section sports-home-hero">
+    <div class="container">
+        <div class="hero-copy">
+            <h1 class="hero-title">Đặt sân cho<br />trận tiếp theo</h1>
+            <p class="hero-subtitle">Chọn môn, khu vực và ngày chơi để xem sân trống và giá theo từng khung giờ.</p>
+            <a href="#the-loai" class="hero-discover">Khám phá các môn <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
+        </div>
+        <form class="search-bar hero-quick-search" asp-controller="Court" asp-action="Search" method="get" role="search" aria-labelledby="quickSearchTitle">
+            <h2 class="search-panel-heading" id="quickSearchTitle">Tìm sân theo lịch của bạn</h2>
+            <div class="row g-3 align-items-end">
+                <div class="col-xl-4 col-md-6">
+                    <label class="form-label" for="Keyword">Sân hoặc khu vực</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+                        <input type="search" class="form-control" id="Keyword" name="Keyword" placeholder="Tên sân hoặc địa chỉ" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <partial name="_SportPicker" model="@(new SportPickerViewModel { Options = Model.SportTypes.Select(sport => new SportTypeOption { Id = sport.Id, Name = sport.Name }).ToList() })" />
+                </div>
+                <div class="col-xl-3 col-md-6">
+                    <label class="form-label" for="BookingDate">Ngày chơi</label>
+                    <input type="date" class="form-control" id="BookingDate" name="BookingDate" value="@today.ToString("yyyy-MM-dd")" min="@today.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-xl-2 col-md-6 d-grid"><button type="submit" class="btn btn-primary hero-search-button"><i class="bi bi-search" aria-hidden="true"></i> Tìm sân</button></div>
+            </div>
+        </form>
+    </div>
+</section>
+<section class="py-4 home-stats" aria-label="SportBooking qua những con số">
+    <div class="container"><div class="row g-3">
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-value">@Model.Stats.TotalCourts</div><div class="stat-label">Sân đang hoạt động</div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-value">@Model.Stats.TotalBookings</div><div class="stat-label">Lịch đặt hoàn thành</div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-value">@Model.Stats.TotalCustomers</div><div class="stat-label">Khách hàng</div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-value">@Model.Stats.TotalOwners</div><div class="stat-label">Chủ sân tham gia</div></div></div>
+    </div></div>
+</section>
+<section class="py-5 sports-selection" id="the-loai">
+    <div class="container">
+        <h2 class="section-title">Tìm sân theo môn</h2>
+        @if (Model.SportTypes.Count == 0)
+        {
+            <div class="empty-state card"><p>Chưa có dữ liệu môn thể thao. Vui lòng thử lại sau.</p></div>
+        }
+        else
+        {
+            <div class="row g-3 g-lg-4">
+                @foreach (var type in Model.SportTypes)
+                {
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <a class="sport-type-card d-block text-decoration-none" data-sport-key="@SportVisual.Key(type.Name)"
+                           asp-controller="Court" asp-action="Search" asp-route-sportTypeId="@type.Id">
+                            <div class="sport-type-icon"><partial name="_SportIcon" model="type.Name" /></div>
+                            <div class="sport-type-name">@type.Name</div><div class="sport-type-count">@type.CourtCount sân <i class="bi bi-arrow-up-right" aria-hidden="true"></i></div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
+<!-- ============ SÂN NỔI BẬT ============ -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-4">
+            <div>
+                <h2 class="section-title mb-1">Sân được đánh giá cao</h2>
+                <p class="section-subtitle mb-0">Những sân có điểm đánh giá tốt nhất từ cộng đồng.</p>
+            </div>
+            <a class="btn btn-outline-primary" asp-controller="Court" asp-action="Search">
+                Xem tất cả sân <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        @if (Model.FeaturedCourts.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="bi bi-geo-alt" aria-hidden="true"></i></div>
+                <h3 class="h5">Chưa có sân nào</h3>
+                <p>Hệ thống đang cập nhật danh sách sân. Vui lòng quay lại sau.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3 g-lg-4">
+                @foreach (var court in Model.FeaturedCourts)
+                {
+                    <div class="col-sm-6 col-lg-3">
+                        <partial name="_CourtCard" model="court" />
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<!-- ============ HƯỚNG DẪN ============ -->
+<section class="py-5" id="huong-dan">
+    <div class="container">
+        <h2 class="section-title text-center">Đặt sân chỉ với 4 bước</h2>
+        <p class="section-subtitle text-center">Tìm sân, kiểm tra khung trống và theo dõi lịch đặt ngay trên SportBooking.</p>
+
+        <div class="row g-3 g-lg-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="card step-card">
+                    <div class="step-number">1</div>
+                    <h3 class="card-title h5">Tìm sân</h3>
+                    <p class="text-muted small mb-0">Lọc theo môn thể thao, quận/huyện, ngày và khung giờ mong muốn.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card step-card">
+                    <div class="step-number">2</div>
+                    <h3 class="card-title h5">Chọn khung giờ</h3>
+                    <p class="text-muted small mb-0">Khung giờ trống, đã đặt, bảo trì được đánh màu rõ ràng kèm giá cụ thể.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card step-card">
+                    <div class="step-number">3</div>
+                    <h3 class="card-title h5">Xác nhận đặt</h3>
+                    <p class="text-muted small mb-0">Thanh toán online qua VNPay hoặc chọn trả tại quầy khi tới sân.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="card step-card">
+                    <div class="step-number">4</div>
+                    <h3 class="card-title h5">Tới chơi &amp; đánh giá</h3>
+                    <p class="text-muted small mb-0">Nhận mã booking, tới đúng giờ và gửi đánh giá sau khi chơi xong.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ ĐÁNH GIÁ NỔI BẬT ============ -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <h2 class="section-title text-center">Khách hàng nói gì</h2>
+        <p class="section-subtitle text-center">Những nhận xét gần đây nhất về chất lượng sân.</p>
+
+        @if (Model.FeaturedReviews.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="bi bi-chat-quote" aria-hidden="true"></i></div>
+                <h3 class="h5">Chưa có đánh giá</h3>
+                <p>Hãy là người đầu tiên đánh giá sân sau khi đặt sân tại SportBooking.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3 g-lg-4">
+                @foreach (var review in Model.FeaturedReviews)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card review-card">
+                            <partial name="_StarRating" model="@(new StarRatingViewModel(review.Rating))" />
+                            <p class="review-card-comment">&ldquo;@review.Comment&rdquo;</p>
+                            <div class="review-user">
+                                @if (!string.IsNullOrWhiteSpace(review.CustomerAvatar))
+                                {
+                                    <img class="review-avatar" src="@review.CustomerAvatar" alt="@review.CustomerName" />
+                                }
+                                else
+                                {
+                                    <span class="review-avatar avatar-placeholder"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+                                }
+                                <div>
+                                    <div class="fw-semibold small">@review.CustomerName</div>
+                                    <div class="text-muted small">
+                                        <a asp-controller="Court" asp-action="Detail" asp-route-id="@review.CourtId">@review.CourtName</a>
+                                        · @review.CreatedAt.ToString("dd/MM/yyyy")
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="py-5">
+    <div class="container">
+        <div class="card">
+            <div class="card-body p-4 p-lg-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <div>
+                    <h3 class="text-white mb-2 fw-bold">Bạn có sân đang trống?</h3>
+                    <p class="text-white-50 mb-0">
+                        Đăng ký tài khoản chủ sân để đăng sân, cấu hình bảng giá theo khung giờ và nhận lịch đặt tự động.
+                    </p>
+                </div>
+                <a class="btn btn-accent btn-lg text-nowrap" asp-controller="Account" asp-action="Register">
+                    <i class="bi bi-shop" aria-hidden="true"></i> Đăng ký chủ sân
+                </a>
+            </div>
+        </div>
+    </div>
+</section>

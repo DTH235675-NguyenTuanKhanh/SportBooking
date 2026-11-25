@@ -1,0 +1,188 @@
+@* File: Views/Account/Register.cshtml *@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng ký";
+}
+
+<div class="auth-container">
+    <div class="auth-card card" style="max-width: 620px;">
+        <div class="card-body">
+            <div class="auth-header">
+                <h2>Đăng ký tài khoản</h2>
+                <p>Tham gia SportBooking để đặt sân thể thao dễ dàng</p>
+            </div>
+
+            <form asp-controller="Account" asp-action="Register" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post" enctype="multipart/form-data" data-qr-submit>
+                @* Hiển thị lỗi chung không gắn với trường cụ thể *@
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                @* ===== Chọn loại tài khoản ===== *@
+                <div class="mb-4">
+                    <label class="form-label">Bạn muốn đăng ký với vai trò <span class="text-danger">*</span></label>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <input type="radio" class="btn-check" asp-for="AccountType" value="Customer" id="typeCustomer" autocomplete="off">
+                            <label class="btn btn-outline-success w-100 py-3" for="typeCustomer">
+                                <i class="bi bi-person-fill d-block fs-4 mb-1"></i>
+                                <strong>Khách hàng</strong>
+                                <small class="d-block text-muted">Đặt sân chơi thể thao</small>
+                            </label>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="radio" class="btn-check" asp-for="AccountType" value="Owner" id="typeOwner" autocomplete="off">
+                            <label class="btn btn-outline-success w-100 py-3" for="typeOwner">
+                                <i class="bi bi-shop d-block fs-4 mb-1"></i>
+                                <strong>Chủ sân</strong>
+                                <small class="d-block text-muted">Cho thuê sân của bạn</small>
+                            </label>
+                        </div>
+                    </div>
+                    <span asp-validation-for="AccountType" class="text-danger small"></span>
+                </div>
+
+                @* ===== Thông tin cơ bản ===== *@
+                <h6 class="fw-bold mb-3 text-secondary">
+                    <i class="bi bi-person-vcard"></i> Thông tin cá nhân
+                </h6>
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" />
+                    <span asp-validation-for="FullName" class="text-danger small"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" placeholder="email@example.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control" placeholder="0912345678" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DateOfBirth" class="form-label"></label>
+                        <input asp-for="DateOfBirth" type="date" class="form-control" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Address" class="form-label"></label>
+                        <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, quận, tỉnh" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                @* ===== Thông tin doanh nghiệp (chỉ hiện khi chọn Chủ sân) ===== *@
+                <div id="businessFields" style="display: none;">
+                    <h6 class="fw-bold mb-3 mt-3 text-secondary">
+                        <i class="bi bi-building"></i> Thông tin doanh nghiệp
+                    </h6>
+
+                    <div class="mb-3">
+                        <label asp-for="BusinessName" class="form-label"></label>
+                        <input asp-for="BusinessName" class="form-control" placeholder="Công ty TNHH / Cụm sân thể thao..." />
+                        <span asp-validation-for="BusinessName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="BusinessPhone" class="form-label"></label>
+                        <input asp-for="BusinessPhone" class="form-control" placeholder="028 3838 1234" />
+                        <span asp-validation-for="BusinessPhone" class="text-danger small"></span>
+                    </div>
+
+                    <partial name="_TransferProfileFields" for="Transfer" />
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill"></i>
+                        Tài khoản Chủ sân cần được <strong>Admin phê duyệt</strong> trước khi có thể sử dụng.
+                        Bạn sẽ được thông báo ngay khi tài khoản được kích hoạt.
+                    </div>
+                </div>
+
+                @* ===== Mật khẩu ===== *@
+                <h6 class="fw-bold mb-3 mt-3 text-secondary">
+                    <i class="bi bi-shield-lock"></i> Bảo mật
+                </h6>
+
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="Password" class="form-control" id="passwordInput" placeholder="Tối thiểu 8 ký tự" />
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                            <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                    <div class="form-text small">
+                        Mật khẩu phải có tối thiểu 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ConfirmPassword" class="form-label"></label>
+                    <input asp-for="ConfirmPassword" class="form-control" placeholder="Nhập lại mật khẩu" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4 form-check">
+                    @* Model kiểm tra giá trị true phía máy chủ. Checkbox dùng required phía trình duyệt. *@
+                    <input asp-for="AgreeToTerms" class="form-check-input" type="checkbox" id="agreeTerms"
+                           data-val="false" required data-msg-required="Bạn phải đồng ý với điều khoản sử dụng." />
+                    <label class="form-check-label small" for="agreeTerms">
+                        Tôi đồng ý với <a href="#" class="text-primary">Điều khoản sử dụng</a>
+                        và <a href="#" class="text-primary">Chính sách bảo mật</a> của SportBooking
+                    </label>
+                    <br />
+                    <span asp-validation-for="AgreeToTerms" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+                    <i class="bi bi-person-plus"></i> Đăng ký
+                </button>
+
+                <div class="auth-links">
+                    Đã có tài khoản?
+                    <a asp-controller="Account" asp-action="Login">Đăng nhập ngay</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/bank-transfer.js" asp-append-version="true" defer></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            // Hiện/ẩn khối thông tin doanh nghiệp theo loại tài khoản được chọn.
+            function toggleBusinessFields() {
+                var accountType = $('input[name="AccountType"]:checked').val();
+                if (accountType === 'Owner') {
+                    $('#businessFields').slideDown(200);
+                } else {
+                    $('#businessFields').slideUp(200);
+                }
+            }
+
+            toggleBusinessFields();
+            $('input[name="AccountType"]').on('change', toggleBusinessFields);
+
+            // Ẩn/hiện mật khẩu.
+            $('#togglePassword').on('click', function () {
+                var input = $('#passwordInput');
+                var icon = $('#togglePasswordIcon');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+        });
+    </script>
+}

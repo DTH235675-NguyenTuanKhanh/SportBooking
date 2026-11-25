@@ -1,0 +1,36 @@
+@model SportPickerViewModel
+@{
+    var selected = Model.Options.FirstOrDefault(option => option.Id == Model.SelectedId);
+}
+<div class="sport-picker-field">
+    <label class="form-label sport-picker-label" id="SportTypeId-label" for="SportTypeId">Môn thể thao</label>
+    <select class="form-select sport-native" name="SportTypeId" id="SportTypeId">
+        <option value="">Tất cả môn</option>
+        @foreach (var sport in Model.Options)
+        {
+            <option value="@sport.Id" selected="@(sport.Id == Model.SelectedId)">@sport.Name</option>
+        }
+    </select>
+    <details class="sport-picker">
+        <summary id="sportPickerButton" aria-labelledby="SportTypeId-label selectedSportName">
+            <img src="@SportVisual.IconUrl(selected?.Name)" class="sport-logo" width="36" height="36" alt="" aria-hidden="true" />
+            <span id="selectedSportName">@(selected?.Name ?? "Tất cả môn")</span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="sport-picker-options" role="group" aria-label="Chọn môn thể thao">
+            <button type="button" class="sport-picker-option" data-sport-value="" data-sport-key="all"
+                    aria-pressed="@((selected is null).ToString().ToLowerInvariant())">
+                <img src="/images/sports/icons/all.svg" class="sport-logo" width="36" height="36" alt="" aria-hidden="true" />
+                <span>Tất cả môn</span><i class="bi bi-check2" aria-hidden="true"></i>
+            </button>
+            @foreach (var sport in Model.Options)
+            {
+                <button type="button" class="sport-picker-option" data-sport-value="@sport.Id" data-sport-key="@SportVisual.Key(sport.Name)"
+                        aria-pressed="@((sport.Id == Model.SelectedId).ToString().ToLowerInvariant())">
+                    <partial name="_SportIcon" model="sport.Name" />
+                    <span>@sport.Name</span><i class="bi bi-check2" aria-hidden="true"></i>
+                </button>
+            }
+        </div>
+    </details>
+</div>

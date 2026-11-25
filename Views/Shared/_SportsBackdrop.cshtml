@@ -1,0 +1,19 @@
+<div class="sports-backdrop" aria-hidden="true">
+    <img class="backdrop-image is-active" src="~/images/sports/football.webp" width="1600" height="900" alt="" fetchpriority="high" />
+    <img class="backdrop-image" width="1600" height="900" alt="" />
+    <div class="backdrop-scrim"></div>
+</div>
+<div class="container backdrop-toolbar-wrap">
+    <div class="backdrop-toolbar" aria-label="Điều khiển ảnh nền thể thao" data-sports-backdrop>
+        <span class="backdrop-caption">
+            <span class="backdrop-caption-label" id="backdropAthleteName">Kylian Mbappé</span>
+            <strong id="backdropSportName">Bóng đá</strong>
+        </span>
+        <div class="backdrop-actions">
+            <button type="button" class="backdrop-control" data-backdrop-prev aria-label="Ảnh môn thể thao trước"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+            <button type="button" class="backdrop-control" data-backdrop-pause aria-label="Tạm dừng chuyển ảnh nền" aria-pressed="false"><i class="bi bi-pause-fill" aria-hidden="true"></i></button>
+            <button type="button" class="backdrop-control" data-backdrop-next aria-label="Ảnh môn thể thao tiếp theo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+        <span class="visually-hidden" id="backdropAnnouncement" role="status"></span>
+    </div>
+</div>

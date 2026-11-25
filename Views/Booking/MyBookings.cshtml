@@ -1,0 +1,263 @@
+@* File: Views/Booking/MyBookings.cshtml *@
+@model BookingListViewModel
+@{
+    ViewData["Title"] = "Lịch đặt sân của tôi";
+    ViewData["MetaDescription"] = "Quản lý lịch đặt sân: chờ xác nhận, đã xác nhận, hoàn thành, đã hủy.";
+
+    int Count(string key) => Model.StatusCounts.TryGetValue(key, out var value) ? value : 0;
+
+    var tabs = new (string Key, string Label, string Icon)[]
+    {
+        ("all", "Tất cả", "bi-list-ul"),
+        ("pending", "Chờ xác nhận", "bi-hourglass-split"),
+        ("confirmed", "Đã xác nhận", "bi-check-circle"),
+        ("completed", "Hoàn thành", "bi-check2-all"),
+        ("cancelled", "Đã hủy", "bi-x-circle"),
+        ("expired", "Hết hạn", "bi-clock-history"),
+        ("noshow", "Vắng mặt", "bi-person-x")
+    };
+
+    var activeTab = string.IsNullOrWhiteSpace(Model.StatusFilter) ? "all" : Model.StatusFilter;
+
+    var routeValues = new Dictionary<string, string?>
+    {
+        ["StatusFilter"] = Model.StatusFilter,
+        ["Keyword"] = Model.Keyword,
+        ["FromDate"] = Model.FromDate?.ToString("yyyy-MM-dd"),
+        ["ToDate"] = Model.ToDate?.ToString("yyyy-MM-dd"),
+        ["PageSize"] = Model.PageSize.ToString()
+    };
+
+    string TabUrl(string key)
+    {
+        var query = routeValues
+            .Where(kv => kv.Key != "StatusFilter" && !string.IsNullOrWhiteSpace(kv.Value))
+            .Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value!)}")
+            .ToList();
+
+        if (key != "all")
+        {
+            query.Add($"StatusFilter={key}");
+        }
+
+        return query.Count == 0 ? "/Booking/MyBookings" : "/Booking/MyBookings?" + string.Join("&", query);
+    }
+}
+
+<div class="container py-4">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Lịch đặt sân</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">Lịch đặt sân của tôi</h1>
+            <span class="text-muted small">Tổng cộng @Model.TotalCount lịch đặt</span>
+        </div>
+        <a class="btn btn-primary" asp-controller="Court" asp-action="Search">
+            <i class="bi bi-plus-circle"></i> Đặt sân mới
+        </a>
+    </div>
+
+    <!-- ============ TAB TRẠNG THÁI ============ -->
+    <ul class="nav nav-tabs mb-3">
+        @foreach (var (key, label, icon) in tabs)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(key == activeTab ? "active" : "")" href="@TabUrl(key)">
+                    <i class="@icon"></i> @label
+                    <span class="badge">@Count(key)</span>
+                </a>
+            </li>
+        }
+    </ul>
+
+    <!-- ============ BỘ LỌC ============ -->
+    <form class="card p-3 mb-4" asp-controller="Booking" asp-action="MyBookings" method="get">
+        <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted" for="Keyword">Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input class="form-control" type="search" id="Keyword" name="Keyword"
+                           value="@Model.Keyword" placeholder="Mã đặt sân hoặc tên sân..." autocomplete="off" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted" for="FromDate">Từ ngày</label>
+                <input class="form-control" type="date" id="FromDate" name="FromDate"
+                       value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted" for="ToDate">Đến ngày</label>
+                <input class="form-control" type="date" id="ToDate" name="ToDate"
+                       value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="bi bi-funnel"></i> Lọc
+                </button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Bookings.Count == 0)
+    {
+        <div class="empty-state card">
+            <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+            <h5 class="mb-2">Chưa có lịch đặt nào</h5>
+            <p class="mb-3">
+                @(string.IsNullOrWhiteSpace(Model.Keyword) && string.IsNullOrWhiteSpace(Model.StatusFilter)
+                    ? "Bạn chưa đặt sân nào. Hãy tìm sân và đặt khung giờ đầu tiên."
+                    : "Không có lịch đặt khớp với bộ lọc hiện tại.")
+            </p>
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <a class="btn btn-primary" asp-controller="Court" asp-action="Search">
+                    <i class="bi bi-search"></i> Tìm sân ngay
+                </a>
+                <a class="btn btn-outline-secondary" asp-controller="Booking" asp-action="MyBookings">
+                    Xem tất cả lịch đặt
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var booking in Model.Bookings)
+            {
+                <div class="card booking-row">
+                    @if (!string.IsNullOrWhiteSpace(booking.CourtImageUrl))
+                    {
+                        <img class="booking-thumb" src="@booking.CourtImageUrl" alt="@booking.CourtName" />
+                    }
+                    else
+                    {
+                        <div class="booking-thumb-placeholder"><i class="bi bi-fire"></i></div>
+                    }
+
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <span class="booking-code">#@booking.BookingCode</span>
+                                <h3 class="h6 mb-1 mt-1">
+                                    <a asp-controller="Court" asp-action="Detail" asp-route-id="@booking.CourtId"
+                                       class="text-decoration-none">@booking.CourtName</a>
+                                </h3>
+                                <div class="text-muted small">
+                                    <i class="bi bi-geo-alt"></i> @booking.ComplexName · @booking.ComplexAddress
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @booking.StatusBadgeClass">@booking.StatusText</span>
+                                <div class="mt-1">
+                                    <span class="small text-muted">@booking.PaymentStatusText</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-2" />
+
+                        <div class="row g-2 align-items-end">
+                            <div class="col-sm-auto">
+                                <div class="text-muted small">Thời gian</div>
+                                <div class="fw-semibold">
+                                    <i class="bi bi-calendar-event text-primary"></i>
+                                    @booking.BookingDate.ToString("dd/MM/yyyy")
+                                    <span class="text-muted">·</span> @booking.TimeRangeText
+                                </div>
+                            </div>
+                            <div class="col-sm-auto">
+                                <div class="text-muted small">Thành tiền</div>
+                                <div class="fw-bold text-accent">@booking.TotalAmount.ToString("#,##0") ₫</div>
+                            </div>
+                            <div class="col-sm-auto">
+                                <div class="text-muted small">Thanh toán</div>
+                                <div class="fw-semibold small">@booking.PaymentMethodText</div>
+                            </div>
+
+                            @if (booking.Status == (int)BookingStatus.Pending && booking.PaymentDeadline.HasValue)
+                            {
+                                <div class="col-sm-auto">
+                                    <div class="text-muted small">Hạn thanh toán</div>
+                                    <div class="fw-semibold small text-danger"
+                                         data-payment-deadline="@booking.PaymentDeadline.Value.ToString("yyyy-MM-ddTHH:mm:ss'+07:00'")">
+                                        @booking.PaymentDeadline.Value.ToString("HH:mm dd/MM/yyyy")
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="col-sm booking-actions ms-sm-auto">
+                                @if (booking.BankTransferGroupCode is { } transferCode)
+                                {
+                                    <a class="btn btn-sm btn-outline-primary" asp-controller="BankTransfer" asp-action="Details" asp-route-code="@transferCode">Chuyển khoản</a>
+                                }
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="Booking"
+                                   asp-action="Detail" asp-route-id="@booking.Id">
+                                    <i class="bi bi-eye"></i> Chi tiết
+                                </a>
+
+                                @if (booking.CanCancel)
+                                {
+                                    <a class="btn btn-sm btn-outline-danger" asp-controller="Booking"
+                                       asp-action="Cancel" asp-route-id="@booking.Id">
+                                        <i class="bi bi-x-circle"></i> Hủy sân
+                                    </a>
+                                }
+
+                                @if (booking.CanReview)
+                                {
+                                    <a class="btn btn-sm btn-accent" asp-controller="Booking"
+                                       asp-action="Review" asp-route-id="@booking.Id">
+                                        <i class="bi bi-star"></i> Đánh giá
+                                    </a>
+                                }
+                                else if (booking.Status == (int)BookingStatus.Completed && booking.HasReview)
+                                {
+                                    <span class="small text-muted"><i class="bi bi-star-fill"></i> Đã đánh giá</span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (booking.Status == (int)BookingStatus.Confirmed && !booking.CanCancel && !string.IsNullOrWhiteSpace(booking.CancelDisabledReason))
+                        {
+                            <p class="text-muted small mt-2 mb-0">
+                                <i class="bi bi-info-circle"></i> @booking.CancelDisabledReason
+                            </p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <partial name="_Pagination" model="@(new PaginationViewModel
+        {
+            Page = Model.Page,
+            TotalPages = Model.TotalPages,
+            TotalResults = Model.TotalCount,
+            PageSize = Model.PageSize,
+            Controller = "Booking",
+            Action = "MyBookings",
+            RouteValues = routeValues,
+            ItemLabel = "lịch đặt"
+        })" />
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Đếm ngược hạn thanh toán cho booking đang chờ.
+            $('[data-payment-deadline]').each(function (index) {
+                if (!this.id) {
+                    this.id = 'payDeadline' + index;
+                }
+                startPaymentCountdown(this.id, $(this).data('payment-deadline'));
+            });
+        });
+    </script>
+}

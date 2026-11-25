@@ -1,0 +1,378 @@
+@* File: Views/Court/Detail.cshtml *@
+@model CourtDetailViewModel
+@inject Microsoft.Extensions.Options.IOptions<BookingSettings> BookingOptions
+@{
+    ViewData["Title"] = Model.Name;
+    ViewData["MetaDescription"] = $"{Model.Name} - {Model.ComplexName}. Giá sân từ {Model.MinPrice:N0} ₫/khung giờ. Xem khung giờ trống và đặt online.";
+
+    var isSignedIn = User.Identity?.IsAuthenticated == true;
+    var isCustomer = User.IsInRole(AppConstants.Roles.Customer);
+    var canBook = Model.CanBook && Model.TimeSlotPrices.Count > 0;
+    var searchReturnUrl = ViewData["SearchReturnUrl"] as string ?? Url.Action("Search", "Court");
+    var today = SportBooking.Helpers.ScheduleGuard.Now.Date;
+    var maxDate = today.AddDays(BookingOptions.Value.MaxAdvanceBookingDays);
+    var selectedDate = DateTime.TryParse(Context.Request.Query["bookingDate"], out var requestedDate)
+        && requestedDate.Date >= today && requestedDate.Date <= maxDate ? requestedDate.Date : today.AddDays(Math.Min(1, BookingOptions.Value.MaxAdvanceBookingDays));
+    var returnUrl = Url.Action("Detail", "Court", new { id = Model.Id, returnUrl = searchReturnUrl, bookingDate = selectedDate.ToString("yyyy-MM-dd") });
+    var iconClass = string.IsNullOrWhiteSpace(Model.SportTypeIcon) ? "bi bi-fire" : Model.SportTypeIcon;
+}
+
+<div class="court-detail-hero detail-page">
+    <div class="container">
+        <nav aria-label="Breadcrumb">
+            <ol class="breadcrumb small mb-3">
+                <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="@searchReturnUrl">Tìm sân</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+            </ol>
+        </nav>
+
+        <a class="back-to-results" href="@searchReturnUrl"><i class="bi bi-arrow-left" aria-hidden="true"></i> Quay lại kết quả tìm kiếm</a>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <partial name="_CourtPhoto" model="@(new CourtPhotoViewModel(Model.Name, Model.SportTypeName, Model.Description, Model.ImageUrl, IsDetail: true))" />
+            </div>
+
+            <div class="col-lg-5">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="chip"><partial name="_SportIcon" model="Model.SportTypeName" /> @Model.SportTypeName</span>
+                    @if (canBook)
+                    {
+                        <span class="chip chip-outline text-success"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Đang mở sân</span>
+                    }
+                    else
+                    {
+                        <span class="chip chip-outline text-danger"><i class="bi bi-cone-striped" aria-hidden="true"></i> Tạm ngừng nhận đặt</span>
+                    }
+                </div>
+
+                <h1 class="detail-title">@Model.Name</h1>
+
+                <div class="mb-3">
+                    <partial name="_StarRating"
+                             model="@(new StarRatingViewModel(Model.AverageRating) { Count = Model.ReviewCount })" />
+                </div>
+
+                <ul class="info-list mb-3">
+                    <li><i class="bi bi-building" aria-hidden="true"></i> <span>@Model.ComplexName</span></li>
+                    <li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> <span>@Model.ComplexAddress, @Model.District, @Model.Province</span></li>
+                    <li><i class="bi bi-clock-fill" aria-hidden="true"></i> <span>Giờ mở cửa: @Model.OpeningHoursText</span></li>
+                    @if (!string.IsNullOrWhiteSpace(Model.ComplexPhone))
+                    {
+                        <li><i class="bi bi-telephone-fill" aria-hidden="true"></i> <a href="tel:@Model.ComplexPhone.Replace(" ", "")">@Model.ComplexPhone</a></li>
+                    }
+                </ul>
+
+                <div class="card p-3 detail-booking-card">
+                    <div class="detail-price-range mb-3">
+                        <div>
+                            <div class="text-muted small">Giá từ</div>
+                            @if (Model.MinPrice > 0)
+                            {
+                                <div class="court-price mb-0">@Model.MinPrice.ToString("N0") <span>₫</span></div>
+                                <div class="text-muted small">/khung</div>
+                            }
+                            else
+                            {
+                                <p class="fw-semibold mb-0">Chưa công bố giá</p>
+                            }
+                        </div>
+                        @if (Model.MaxPrice > Model.MinPrice)
+                        {
+                            <div class="text-end">
+                                <div class="text-muted small">Giá cao nhất</div>
+                                <div class="fw-semibold">@Model.MaxPrice.ToString("#,##0") ₫</div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!canBook)
+                    {
+                        <div class="alert alert-warning small mb-0">
+                            <i class="bi bi-cone-striped" aria-hidden="true"></i> @(Model.CanBook ? "Sân chưa công bố khung giờ đặt. Vui lòng chọn sân khác hoặc liên hệ chủ sân." : Model.UnavailableReason)
+                        </div>
+                    }
+                    else if (isSignedIn && !isCustomer)
+                    {
+                        <div class="alert alert-info small mb-0">
+                            <i class="bi bi-info-circle" aria-hidden="true"></i> Tài khoản của bạn không có quyền đặt sân.
+                            Hãy dùng tài khoản khách hàng để đặt lịch.
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="get" asp-controller="Booking" asp-action="Create">
+                            <input type="hidden" name="courtId" value="@Model.Id" />
+                            <input type="hidden" name="returnUrl" value="@searchReturnUrl" />
+                            <label class="form-label small text-muted" for="quickDate">Chọn ngày chơi</label>
+                            <div class="detail-date-action">
+                                <input class="form-control" type="date" id="quickDate" name="bookingDate"
+                                       value="@selectedDate.ToString("yyyy-MM-dd")"
+                                       min="@today.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")" />
+                                <button class="btn btn-primary text-nowrap" type="submit">
+                                    <i class="bi bi-calendar-plus" aria-hidden="true"></i> Chọn khung giờ
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i> Có thể hủy trước giờ chơi tối thiểu @BookingOptions.Value.CancellationMinHoursBefore giờ. Xem chính sách hủy và hoàn tiền.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4 detail-page">
+    <nav class="detail-section-nav" aria-label="Nội dung trang sân">
+        <a href="#courtIntro">Giới thiệu</a><a href="#courtPrices">Bảng giá</a><a href="#courtReviews">Đánh giá (@Model.ReviewCount)</a>
+    </nav>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- ============ MÔ TẢ ============ -->
+            <div class="card mb-4" id="courtIntro">
+                <div class="card-body p-4">
+                    <h2 class="card-title"><i class="bi bi-info-circle text-primary" aria-hidden="true"></i> Giới thiệu sân</h2>
+                    <p class="mb-3">@(!string.IsNullOrWhiteSpace(Model.Description) ? Model.Description : "Sân chưa có mô tả chi tiết.")</p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.ComplexDescription))
+                    {
+                        <h3 class="h6 text-muted small">Về @Model.ComplexName</h3>
+                        <p class="text-muted mb-0">@Model.ComplexDescription</p>
+                    }
+                </div>
+            </div>
+
+            <!-- ============ BẢNG GIÁ ============ -->
+            <div class="card mb-4" id="courtPrices">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <h2 class="card-title mb-0"><i class="bi bi-cash-stack text-primary" aria-hidden="true"></i> Bảng giá khung giờ</h2>
+                        @if (canBook && isSignedIn && isCustomer)
+                        {
+                            <a class="btn btn-sm btn-outline-primary" asp-controller="Booking" asp-action="Create"
+                               asp-route-courtId="@Model.Id" asp-route-bookingDate="@selectedDate.ToString("yyyy-MM-dd")" asp-route-returnUrl="@searchReturnUrl">
+                                <i class="bi bi-lightning-charge" aria-hidden="true"></i> Đặt sân ngay
+                            </a>
+                        }
+                    </div>
+
+                    @if (Model.TimeSlotPrices.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="bi bi-clock" aria-hidden="true"></i></div>
+                            <p class="mb-0">Sân chưa công bố bảng giá khung giờ.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="price-table">
+                                <caption class="visually-hidden">Giá VNĐ/khung: ngày thường thứ Hai–Sáu, cuối tuần thứ Bảy–Chủ nhật</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Khung giờ</th>
+                                        <th scope="col">Thời lượng</th>
+                                        <th scope="col" class="text-end">Ngày thường</th>
+                                        <th scope="col" class="text-end">Cuối tuần</th>
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var slot in Model.TimeSlotPrices)
+                                    {
+                                        <tr>
+                                            <td data-label="Khung giờ" class="fw-semibold">@slot.TimeRangeText</td>
+                                            <td data-label="Thời lượng" class="text-muted">@slot.DurationMinutes phút</td>
+                                            <td data-label="Ngày thường" class="text-end price-highlight">@slot.PriceWeekday.ToString("#,##0") ₫</td>
+                                            <td data-label="Cuối tuần" class="text-end">@slot.PriceWeekend.ToString("#,##0") ₫</td>
+
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small mt-3 mb-0">
+                            <i class="bi bi-info-circle" aria-hidden="true"></i> Giá trọn khung theo ngày sử dụng: thứ Hai–Sáu dùng giá thường, thứ Bảy–Chủ nhật dùng giá cuối tuần. Chưa áp dụng giá lễ.
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- ============ ĐÁNH GIÁ ============ -->
+            <div class="card" id="courtReviews">
+                <div class="card-body p-4">
+                    <h2 class="card-title"><i class="bi bi-star text-primary" aria-hidden="true"></i> Đánh giá của khách hàng</h2>
+
+                    <div class="rating-summary mb-4">
+                        <div class="rating-summary-score">
+                            <div class="value">@Model.AverageRating.ToString("0.0")</div>
+                            <partial name="_StarRating"
+                                     model="@(new StarRatingViewModel(Model.AverageRating) { ShowScore = false, StarClass = "fs-5" })" />
+                            <div class="text-muted small mt-1">@Model.ReviewCount đánh giá</div>
+                        </div>
+
+                        <div class="flex-grow-1">
+                            @foreach (var star in new[] { 5, 4, 3, 2, 1 })
+                            {
+                                var count = Model.RatingDistribution.TryGetValue(star, out var c) ? c : 0;
+                                var percent = Model.ReviewCount > 0 ? (int)Math.Round(count * 100.0 / Model.ReviewCount) : 0;
+                                <div class="rating-bar-row mb-2">
+                                    <span class="text-nowrap">@star <i class="bi bi-star-fill text-warning" aria-hidden="true"></i></span>
+                                    <div class="rating-bar-track">
+                                        <div class="rating-bar-fill" style="width: @percent%"></div>
+                                    </div>
+                                    <span class="text-nowrap">@count</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (Model.Reviews.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="bi bi-chat-quote" aria-hidden="true"></i></div>
+                            <h3 class="h5">Chưa có đánh giá</h3>
+                            <p class="mb-0">Hãy là người đầu tiên đánh giá sân sau khi đặt sân tại đây.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="review-list">
+                            @foreach (var review in Model.Reviews)
+                            {
+                                <li>
+                                    <div class="d-flex gap-3">
+                                        @if (!string.IsNullOrWhiteSpace(review.CustomerAvatar))
+                                        {
+                                            <img class="review-avatar" src="@review.CustomerAvatar" alt="@review.CustomerName" />
+                                        }
+                                        else
+                                        {
+                                            <span class="review-avatar avatar-placeholder"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+                                        }
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                                <div class="fw-semibold">@review.CustomerName</div>
+                                                <span class="text-muted small">@review.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                            </div>
+                                            <partial name="_StarRating"
+                                                     model="@(new StarRatingViewModel(review.Rating) { ShowScore = false })" />
+                                            @if (!string.IsNullOrWhiteSpace(review.Comment))
+                                            {
+                                                <p class="mb-0 mt-2">@review.Comment</p>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(review.OwnerReply))
+                                            {
+                                                <div class="review-owner-reply">
+                                                    <strong><i class="bi bi-reply-fill" aria-hidden="true"></i> Phản hồi từ chủ sân</strong>
+                                                    @if (review.OwnerReplyAt.HasValue)
+                                                    {
+                                                        <span class="text-muted"> · @review.OwnerReplyAt.Value.ToString("dd/MM/yyyy")</span>
+                                                    }
+                                                    <div class="mt-1">@review.OwnerReply</div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+
+                        @if (Model.TotalReviewPages > 1)
+                        {
+                            <nav class="pagination-wrapper" aria-label="Phân trang đánh giá">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <li class="page-item @(Model.ReviewPage <= 1 ? "disabled" : "")">
+                                        <a class="page-link" asp-controller="Court" asp-action="Detail"
+                                           asp-route-id="@Model.Id" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@selectedDate.ToString("yyyy-MM-dd")" asp-route-reviewPage="@(Model.ReviewPage - 1)" aria-label="Đánh giá trước" tabindex="@(Model.ReviewPage <= 1 ? -1 : (int?)null)" aria-disabled="@(Model.ReviewPage <= 1 ? "true" : null)">
+                                            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                                        </a>
+                                    </li>
+                                    @for (var p = 1; p <= Model.TotalReviewPages; p++)
+                                    {
+                                        <li class="page-item @(p == Model.ReviewPage ? "active" : "")">
+                                            <a class="page-link" asp-controller="Court" asp-action="Detail"
+                                               asp-route-id="@Model.Id" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@selectedDate.ToString("yyyy-MM-dd")" asp-route-reviewPage="@p"
+                                               aria-current="@(p == Model.ReviewPage ? "page" : null)">@p</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.ReviewPage >= Model.TotalReviewPages ? "disabled" : "")">
+                                        <a class="page-link" asp-controller="Court" asp-action="Detail"
+                                           asp-route-id="@Model.Id" asp-route-returnUrl="@searchReturnUrl" asp-route-bookingDate="@selectedDate.ToString("yyyy-MM-dd")" asp-route-reviewPage="@(Model.ReviewPage + 1)" aria-label="Đánh giá sau" tabindex="@(Model.ReviewPage >= Model.TotalReviewPages ? -1 : (int?)null)" aria-disabled="@(Model.ReviewPage >= Model.TotalReviewPages ? "true" : null)">
+                                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- ============ THÔNG TIN LIÊN HỆ ============ -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h3 class="card-title h6"><i class="bi bi-geo-alt text-primary" aria-hidden="true"></i> Vị trí &amp; liên hệ</h3>
+                    <ul class="info-list">
+                        <li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> <span>@Model.ComplexAddress, @Model.District, @Model.Province</span></li>
+                        <li><i class="bi bi-clock-fill" aria-hidden="true"></i> <span>@Model.OpeningHoursText</span></li>
+                        <li><i class="bi bi-telephone-fill" aria-hidden="true"></i>
+                            @if (!string.IsNullOrWhiteSpace(Model.ComplexPhone))
+                            {
+                                <a href="tel:@Model.ComplexPhone.Replace(" ", "")">@Model.ComplexPhone</a>
+                            }
+                            else
+                            {
+                                <span>Chưa cập nhật</span>
+                            }
+                        </li>
+                        <li><i class="bi bi-envelope-fill" aria-hidden="true"></i>
+                            @if (!string.IsNullOrWhiteSpace(Model.ComplexEmail))
+                            {
+                                <a href="mailto:@Model.ComplexEmail">@Model.ComplexEmail</a>
+                            }
+                            else
+                            {
+                                <span>Chưa cập nhật</span>
+                            }
+                        </li>
+                    </ul>
+
+                    <a class="btn btn-outline-primary w-100 mt-3"
+                       href="https://www.google.com/maps/search/?api=1&query=@Uri.EscapeDataString($"{Model.ComplexAddress}, {Model.District}, {Model.Province}")"
+                       target="_blank" rel="noopener">
+                        <i class="bi bi-map" aria-hidden="true"></i> Xem trên Google Maps
+                    </a>
+                </div>
+            </div>
+
+            <!-- ============ SÂN KHÁC CÙNG CỤM ============ -->
+            @if (Model.OtherCourtsInComplex.Count > 0)
+            {
+                <div class="card">
+                    <div class="card-body p-4">
+                        <h3 class="card-title h6">Sân khác tại @Model.ComplexName</h3>
+                        <div class="list-group list-group-flush">
+                            @foreach (var other in Model.OtherCourtsInComplex)
+                            {
+                                <a class="list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-center gap-2"
+                                   asp-controller="Court" asp-action="Detail" asp-route-id="@other.Id">
+                                    <span>
+                                        <span class="d-block fw-semibold small">@other.Name</span>
+                                        <span class="text-muted small">@other.SportTypeName · @other.AverageRating.ToString("0.0") <i class="bi bi-star-fill text-warning" aria-hidden="true"></i></span>
+                                    </span>
+                                    <span class="text-accent fw-semibold small">@other.MinPrice.ToString("#,##0") ₫</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

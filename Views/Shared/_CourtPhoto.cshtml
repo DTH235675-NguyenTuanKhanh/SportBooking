@@ -1,0 +1,29 @@
+@model CourtPhotoViewModel
+@{
+    var illustrationPath = SportVisual.CourtIllustrationUrl(Model.SportTypeName, Model.Name, Model.Description);
+    var illustrationUrl = illustrationPath is null ? null : Url.Content(illustrationPath);
+    var hasOwnerPhoto = !string.IsNullOrWhiteSpace(Model.ImageUrl);
+    var photoUrl = hasOwnerPhoto ? Url.Content(Model.ImageUrl!.Trim()) : illustrationUrl;
+    var isIllustration = !hasOwnerPhoto && illustrationUrl is not null;
+    var illustrationAlt = Model.IsDetail ? Model.SportTypeName : string.Empty;
+    var photoAlt = Model.IsDetail && hasOwnerPhoto ? Model.Name : illustrationAlt;
+}
+
+<div class="court-photo">
+    @if (photoUrl is not null)
+    {
+        <img class="@(Model.IsDetail ? "detail-gallery-main" : "court-card-img")"
+             src="@photoUrl" alt="@photoAlt" width="1280" height="720"
+             loading="@(Model.IsDetail ? null : "lazy")" fetchpriority="@(Model.IsDetail ? "high" : null)"
+             data-court-photo data-illustration-url="@(hasOwnerPhoto ? illustrationUrl : null)"
+             data-illustration-alt="@illustrationAlt" />
+        <span class="court-photo-label" hidden="@(!isIllustration)">Ảnh minh họa</span>
+    }
+
+    <div class="@(Model.IsDetail ? "detail-gallery-placeholder" : "court-card-placeholder")"
+         data-court-photo-placeholder hidden="@(photoUrl is not null)">
+        <partial name="_SportIcon" model="Model.SportTypeName" />
+        <span>@Model.SportTypeName</span>
+        <span class="placeholder-caption">Chưa có ảnh sân</span>
+    </div>
+</div>

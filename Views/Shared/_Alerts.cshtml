@@ -1,0 +1,47 @@
+@* File: Views/Shared/_Alerts.cshtml
+   Hiển thị thông báo từ TempData.
+   Hỗ trợ cả khóa "Error" (CourtController) và "ErrorMessage" (AppConstants.TempDataKeys.Error). *@
+@{
+    var success = TempData["SuccessMessage"] as string
+                  ?? TempData["Success"] as string;
+    var error = TempData["ErrorMessage"] as string
+                ?? TempData["Error"] as string;
+    var warning = TempData["WarningMessage"] as string;
+    var info = TempData["InfoMessage"] as string;
+}
+
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <div class="alert alert-success alert-dismissible fade show alert-flash" role="status">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <span>@success</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger alert-dismissible fade show alert-flash" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <span>@error</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(warning))
+{
+    <div class="alert alert-warning alert-dismissible fade show alert-flash" role="alert">
+        <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+        <span>@warning</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(info))
+{
+    <div class="alert alert-info alert-dismissible fade show alert-flash" role="status">
+        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+        <span>@info</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+}

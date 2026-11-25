@@ -1,0 +1,67 @@
+@model SportTypeListViewModel
+@{ ViewData["Title"] = "Quản lý loại sân"; }
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3">Quản lý loại sân</h1>
+            <p class="text-muted mb-0">Quản lý danh mục thể thao và thứ tự hiển thị.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Thêm loại sân</a>
+    </div>
+    <form method="get" class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="keyword" class="form-label">Tên loại sân</label>
+                <input id="keyword" name="keyword" value="@Model.Keyword" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label for="isActive" class="form-label">Trạng thái</label>
+                <select id="isActive" name="isActive" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="true" selected="@(Model.IsActive == true)">Đang hoạt động</option>
+                    <option value="false" selected="@(Model.IsActive == false)">Ngừng hoạt động</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary">Lọc</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Đặt lại</a>
+            </div>
+        </div>
+    </form>
+    <div class="card table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <caption class="px-3">@Model.TotalCount loại sân. Số sân bao gồm sân đã xóa mềm.</caption>
+            <thead><tr><th scope="col">Loại sân</th><th scope="col">Thứ tự</th><th scope="col">Số sân</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">Không có loại sân phù hợp.</td></tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td><strong><i class="bi @item.IconClass" aria-hidden="true"></i> @item.Name</strong><div class="small text-muted text-break">@item.Description</div></td>
+                        <td>@item.DisplayOrder</td><td>@item.CourtCount</td>
+                        <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" aria-label="Sửa @item.Name">Sửa</a>
+                                @if (item.CourtCount == 0)
+                                {
+                                    <form method="post" asp-action="Delete" asp-route-id="@item.Id" onsubmit="return confirm('Xóa loại sân này? Thao tác không thể hoàn tác.');">
+                                        <button class="btn btn-sm btn-outline-danger" aria-label="Xóa @item.Name">Xóa</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="small text-muted align-self-center">Đang được sử dụng</span>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <partial name="~/Views/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, TotalResults = Model.TotalCount, PageSize = 10, Controller = "SportTypeManagement", Action = "Index", Area = "Admin", ItemLabel = "loại sân", RouteValues = new Dictionary<string, string?> { ["keyword"] = Model.Keyword, ["isActive"] = Model.IsActive?.ToString() } })" />
+</div>

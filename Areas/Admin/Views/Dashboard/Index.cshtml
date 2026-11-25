@@ -1,0 +1,118 @@
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Quản trị hệ thống";
+    ViewData["MetaDescription"] = "Dashboard quản trị SportBooking.";
+    var chartLabels = System.Text.Json.JsonSerializer.Serialize(Model.BookingChart.Select(x => x.Label));
+    var chartBookings = System.Text.Json.JsonSerializer.Serialize(Model.BookingChart.Select(x => x.BookingCount));
+    var chartRevenue = System.Text.Json.JsonSerializer.Serialize(Model.BookingChart.Select(x => x.Revenue));
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-speedometer2 text-primary"></i> Dashboard quản trị</h1>
+            <p class="text-muted mb-0">Tổng quan hoạt động của nền tảng.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" asp-area="Admin" asp-controller="UserManagement" asp-action="Index">
+                <i class="bi bi-people"></i> Tài khoản
+            </a>
+            <a class="btn btn-outline-primary" asp-area="Admin" asp-controller="SportTypeManagement" asp-action="Index">Quản lý loại sân</a>
+            <a class="btn btn-outline-primary" asp-area="Admin" asp-controller="ReviewManagement" asp-action="Index">
+                <i class="bi bi-star-half"></i> Đánh giá
+            </a>
+            <a class="btn btn-outline-primary" asp-area="Admin" asp-controller="OwnerApproval" asp-action="Index">
+                <i class="bi bi-person-check"></i> Duyệt chủ sân
+                @if (Model.PendingOwners > 0)
+                {
+                    <span class="badge text-bg-danger ms-1">@Model.PendingOwners</span>
+                }
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="card h-100 p-3"><div class="text-muted small">Tổng người dùng</div><div class="display-6 fw-bold">@Model.TotalUsers</div></div></div>
+        <div class="col-6 col-xl-3"><div class="card h-100 p-3"><div class="text-muted small">Chủ sân</div><div class="display-6 fw-bold">@Model.TotalOwners</div><div class="small text-warning">@Model.PendingOwners chờ duyệt</div></div></div>
+        <div class="col-6 col-xl-3"><div class="card h-100 p-3"><div class="text-muted small">Cụm sân / sân con</div><div class="display-6 fw-bold">@Model.TotalComplexes <span class="fs-4 text-muted">/ @Model.TotalCourts</span></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card h-100 p-3"><div class="text-muted small">Booking hôm nay</div><div class="display-6 fw-bold">@Model.TodayBookings</div><div class="small text-muted">@Model.MonthBookings booking tháng này</div></div></div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card p-3 h-100">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-2">
+                    <h2 class="h5 mb-0">Booking và doanh thu ròng 30 ngày gần nhất</h2>
+                    <span id="monthNetRevenue">Ròng tháng này <strong class="text-primary">@Model.MonthRevenue.ToString("#,##0") ₫</strong></span>
+                </div>
+                <p class="small text-muted">Doanh thu ghi nhận theo ngày thực thu, trừ tiền đã hoàn có thời điểm đối soát.</p>
+                <p id="chartFallback" class="small text-muted mb-0" hidden>Hiện chưa tải được biểu đồ.</p>
+                <div id="chartPlot" style="height: 320px"><canvas id="bookingChart" aria-label="Biểu đồ booking và doanh thu"></canvas></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">Owner chờ duyệt</h2>
+                    <a asp-area="Admin" asp-controller="OwnerApproval" asp-action="Index" class="small">Xem tất cả</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    @if (Model.PendingOwnersLatest.Count == 0)
+                    {
+                        <div class="p-3 text-muted">Không có yêu cầu chờ duyệt.</div>
+                    }
+                    @foreach (var owner in Model.PendingOwnersLatest)
+                    {
+                        <a class="list-group-item list-group-item-action" asp-area="Admin" asp-controller="OwnerApproval" asp-action="Detail" asp-route-id="@owner.Id">
+                            <div class="fw-semibold">@owner.FullName</div>
+                            <div class="small text-muted">@(owner.BusinessName ?? owner.Email)</div>
+                            <div class="small text-muted">@owner.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Đánh giá mới nhất</h2>
+            <a class="small" asp-area="Admin" asp-controller="ReviewManagement" asp-action="Index">Xem tất cả</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Khách hàng</th><th>Sân</th><th>Đánh giá</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
+                <tbody>
+                @foreach (var review in Model.LatestReviews)
+                {
+                    <tr>
+                        <td>@review.CustomerName</td><td>@review.CourtName<br /><small class="text-muted">@review.ComplexName</small></td>
+                        <td><span class="text-warning">@string.Concat(Enumerable.Repeat("★", review.Rating))</span><br /><small>@review.Comment</small></td>
+                        <td><span class="badge @(review.IsVisible ? "text-bg-success" : "text-bg-secondary")">@(review.IsVisible ? "Đang hiện" : "Đã ẩn")</span></td>
+                        <td>@review.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        if (typeof Chart === 'undefined') {
+            document.getElementById('chartPlot').hidden = true;
+            document.getElementById('chartFallback').hidden = false;
+        } else new Chart(document.getElementById('bookingChart'), {
+            data: {
+                labels: @Html.Raw(chartLabels),
+                datasets: [
+                    { type: 'bar', label: 'Booking', data: @Html.Raw(chartBookings), backgroundColor: '#4f46e5', borderRadius: 4, yAxisID: 'y' },
+                    { type: 'line', label: 'Doanh thu ròng (₫)', data: @Html.Raw(chartRevenue), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.12)', fill: true, tension: .3, yAxisID: 'revenue' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Booking' } }, revenue: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: value => Number(value).toLocaleString('vi-VN') + ' ₫' } } } }
+        });
+    </script>
+}

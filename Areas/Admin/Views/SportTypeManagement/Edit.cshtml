@@ -1,0 +1,46 @@
+@model SportTypeEditViewModel
+@{
+    var creating = ViewContext.RouteData.Values["action"]?.ToString() == "Create";
+    ViewData["Title"] = creating ? "Thêm loại sân" : "Sửa loại sân";
+}
+<div class="container py-4">
+    <h1 class="h3 mb-4">@ViewData["Title"]</h1>
+    <form method="post" class="card p-4" asp-action="@(creating ? "Create" : "Edit")" asp-route-id="@ViewContext.RouteData.Values["id"]">
+        <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" maxlength="100" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="3" maxlength="500"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="IconClass" class="form-label"></label>
+                <input asp-for="IconClass" class="form-control" maxlength="100" aria-describedby="icon-help" />
+                <div id="icon-help" class="form-text">Lớp Bootstrap Icons, ví dụ bi-trophy-fill. Có thể để trống.</div>
+                <span asp-validation-for="IconClass" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="DisplayOrder" class="form-label"></label>
+                <input asp-for="DisplayOrder" class="form-control" min="0" />
+                <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="form-check mb-4">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+            <div class="form-text">Loại ngừng hoạt động sẽ ẩn khỏi danh mục trang chủ và bộ lọc tìm kiếm.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Lưu loại sân</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,29 @@
+@model OwnerApprovalListViewModel
+@{
+    ViewData["Title"] = "Duyệt chủ sân";
+    var routeValues = new Dictionary<string, string?> { ["Status"] = Model.Status, ["Keyword"] = Model.Keyword, ["PageSize"] = Model.PageSize.ToString() };
+}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div><h1 class="h3 mb-1">Duyệt tài khoản chủ sân</h1><p class="text-muted mb-0">Kiểm tra và xử lý yêu cầu đăng ký của chủ sân.</p></div>
+        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    </div>
+    <form class="card p-3 mb-4" method="get" asp-area="Admin" asp-controller="OwnerApproval" asp-action="Index">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-5"><label class="form-label small text-muted" for="Keyword">Tìm kiếm</label><input id="Keyword" name="Keyword" value="@Model.Keyword" class="form-control" placeholder="Họ tên, email hoặc tên doanh nghiệp" /></div>
+            <div class="col-md-4"><label class="form-label small text-muted" for="Status">Trạng thái</label><select id="Status" name="Status" class="form-select"><option value="Pending" selected="@(Model.Status == "Pending")">Chờ duyệt</option><option value="Approved" selected="@(Model.Status == "Approved")">Đã duyệt</option><option value="Rejected" selected="@(Model.Status == "Rejected")">Từ chối</option></select></div>
+            <div class="col-md-3 d-grid"><button class="btn btn-primary"><i class="bi bi-funnel"></i> Lọc</button></div>
+        </div>
+    </form>
+    <div class="card">
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Chủ sân</th><th>Doanh nghiệp</th><th>Liên hệ</th><th>Trạng thái</th><th>Ngày đăng ký</th><th></th></tr></thead><tbody>
+        @if (Model.Owners.Count == 0) { <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu phù hợp.</td></tr> }
+        @foreach (var owner in Model.Owners)
+        {
+            var badge = owner.ApprovalStatus switch { OwnerApprovalStatus.Pending => "text-bg-warning", OwnerApprovalStatus.Approved => "text-bg-success", _ => "text-bg-danger" };
+            <tr><td><div class="fw-semibold">@owner.FullName</div><small class="text-muted">@owner.Email</small></td><td>@owner.BusinessName</td><td>@owner.PhoneNumber<br /><small>@owner.BusinessPhone</small></td><td><span class="badge @badge">@owner.ApprovalStatus</span></td><td>@owner.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td><td><a class="btn btn-sm btn-outline-primary" asp-area="Admin" asp-controller="OwnerApproval" asp-action="Detail" asp-route-id="@owner.Id">Chi tiết</a></td></tr>
+        }
+        </tbody></table></div>
+    </div>
+    <partial name="~/Views/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, TotalResults = Model.TotalCount, PageSize = Model.PageSize, Controller = "OwnerApproval", Action = "Index", Area = "Admin", ItemLabel = "chủ sân", RouteValues = routeValues })" />
+</div>

@@ -1,0 +1,209 @@
+@model OwnerBookingListViewModel
+@{
+    ViewData["Title"] = "Quản lý lịch đặt sân";
+    ViewData["MetaDescription"] = "Theo dõi booking, xác nhận thanh toán tại quầy và cập nhật trạng thái sử dụng sân.";
+
+    var filter = new Dictionary<string, string?>
+    {
+        ["StatusFilter"] = Model.StatusFilter,
+        ["TransferReview"] = Model.TransferReview ? "true" : null,
+        ["Keyword"] = Model.Keyword,
+        ["FromDate"] = Model.FromDate?.ToString("yyyy-MM-dd"),
+        ["ToDate"] = Model.ToDate?.ToString("yyyy-MM-dd"),
+        ["PageSize"] = Model.PageSize.ToString()
+    };
+}
+
+<div class="container py-4">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-area="Owner" asp-controller="Dashboard" asp-action="Index">Tổng quan chủ sân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Quản lý lịch đặt sân</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Quản lý lịch đặt sân</h1>
+            <p class="text-muted mb-0">Xác nhận tiền tại quầy, đối soát chuyển khoản và cập nhật kết quả lượt đặt.</p>
+        </div>
+        <span class="badge text-bg-light">Tổng @Model.TotalCount booking</span>
+    </div>
+
+    <form class="card p-3 mb-4" asp-area="Owner" asp-controller="Bookings" asp-action="Index" method="get">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label small text-muted" for="Keyword">Tìm kiếm</label>
+                <input class="form-control" type="search" id="Keyword" name="Keyword" value="@Model.Keyword"
+                       placeholder="Mã đặt, khách hàng, số điện thoại hoặc sân" />
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label small text-muted" for="StatusFilter">Trạng thái</label>
+                <select class="form-select" id="StatusFilter" name="StatusFilter">
+                    <option value="">Tất cả trạng thái</option>
+                    @foreach (var status in Enum.GetValues<BookingStatus>())
+                    {
+                        <option value="@status" selected="@(Model.StatusFilter == status.ToString())">@BookingService.MapBookingStatusText(status)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small text-muted" for="FromDate">Từ ngày</label>
+                <input class="form-control" type="date" id="FromDate" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small text-muted" for="ToDate">Đến ngày</label>
+                <input class="form-control" type="date" id="ToDate" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-lg-2 col-md-4 d-grid">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Lọc</button>
+            </div>
+            <div class="col-12 form-check ms-2 mt-3">
+                <input asp-for="TransferReview" class="form-check-input" />
+                <label asp-for="TransferReview" class="form-check-label">Chuyển khoản chờ chủ sân xác nhận</label>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Bookings.Count == 0)
+    {
+        <div class="empty-state card">
+            <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+            <h2 class="h5 mb-2">Không có lịch đặt phù hợp</h2>
+            <p class="text-muted mb-0">Thử thay đổi bộ lọc hoặc kiểm tra lại sau.</p>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var booking in Model.Bookings)
+            {
+                <article class="card booking-row p-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <span class="booking-code">#@booking.BookingCode</span>
+                                <h2 class="h6 mt-1 mb-1">@booking.CourtName</h2>
+                                <div class="text-muted small">@booking.ComplexName</div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge @booking.StatusBadgeClass">@booking.StatusText</span>
+                                <div class="small text-muted mt-1">@booking.PaymentStatusText · @booking.PaymentMethodText</div>
+                            </div>
+                        </div>
+
+                        <hr class="my-2" />
+                        <div class="row g-3 small">
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Khách hàng</div>
+                                <div class="fw-semibold">@booking.CustomerName</div>
+                                @if (!string.IsNullOrWhiteSpace(booking.CustomerPhone))
+                                {
+                                    <a href="tel:@booking.CustomerPhone">@booking.CustomerPhone</a>
+                                }
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Thời gian</div>
+                                <div class="fw-semibold">@booking.BookingDate.ToString("dd/MM/yyyy") · @booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Thành tiền</div>
+                                <div class="fw-bold">@booking.TotalAmount.ToString("#,##0") ₫</div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Mã nhóm đặt</div>
+                                <div class="fw-semibold">@booking.BookingGroupCode</div>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(booking.Note))
+                        {
+                            <div class="small mt-2"><span class="text-muted">Ghi chú:</span> @booking.Note</div>
+                        }
+
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            @if (booking.BankTransferGroupCode is { } transferCode)
+                            {
+                                <a class="btn btn-outline-primary" asp-area="" asp-controller="BankTransfer" asp-action="Details" asp-route-code="@transferCode">
+                                    @(booking.TransferState == TransferState.Reported ? "Chờ chủ sân xác nhận" : "Chi tiết chuyển khoản")
+                                </a>
+                            }
+                            @if (booking.CanConfirmCounterRefund)
+                            {
+                                <form asp-area="Owner" asp-controller="Bookings" asp-action="ConfirmCounterRefund" method="post"
+                                      data-confirm="Bạn đã thực sự trả lại tiền cho khách hàng? Chỉ xác nhận sau khi hoàn tiền.">
+                                    <input type="hidden" name="bookingId" value="@booking.Id" />
+                                    <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                    <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="Page" value="@Model.Page" />
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Xác nhận đã trả tiền tại quầy</button>
+                                </form>
+                            }
+                            @if (booking.CanConfirmCounterPayment)
+                            {
+                                <form asp-area="Owner" asp-controller="Bookings" asp-action="ConfirmCounterPayment" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="bookingGroupCode" value="@booking.BookingGroupCode" />
+                                    <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                    <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="Page" value="@Model.Page" />
+                                    <button class="btn btn-sm btn-success" type="submit">
+                                        <i class="bi bi-cash-coin"></i> Xác nhận đã thu tiền nhóm
+                                    </button>
+                                </form>
+                            }
+                            @if (booking.CanComplete)
+                            {
+                                <form asp-area="Owner" asp-controller="Bookings" asp-action="UpdateStatus" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="bookingId" value="@booking.Id" />
+                                    <input type="hidden" name="targetStatus" value="Completed" />
+                                    <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                    <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="Page" value="@Model.Page" />
+                                    <button class="btn btn-sm btn-outline-success" type="submit">
+                                        <i class="bi bi-check2-all"></i> Đánh dấu hoàn thành
+                                    </button>
+                                </form>
+                            }
+                            @if (booking.CanMarkNoShow)
+                            {
+                                <form asp-area="Owner" asp-controller="Bookings" asp-action="UpdateStatus" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="bookingId" value="@booking.Id" />
+                                    <input type="hidden" name="targetStatus" value="NoShow" />
+                                    <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+                                    <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                    <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                                    <input type="hidden" name="Page" value="@Model.Page" />
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">
+                                        <i class="bi bi-person-x"></i> Đánh dấu vắng mặt
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <partial name="_Pagination" model="@(new PaginationViewModel
+        {
+            Page = Model.Page,
+            TotalPages = Model.TotalPages,
+            TotalResults = Model.TotalCount,
+            PageSize = Model.PageSize,
+            Controller = "Bookings",
+            Action = "Index",
+            Area = "Owner",
+            ItemLabel = "booking",
+            RouteValues = filter
+        })" />
+    }
+</div>

@@ -1,0 +1,114 @@
+@model AdminReviewListViewModel
+@{
+    ViewData["Title"] = "Quản lý đánh giá";
+    var routeValues = new Dictionary<string, string?>
+    {
+        ["CourtId"] = Model.CourtId?.ToString(),
+        ["Rating"] = Model.Rating?.ToString(),
+        ["VisibilityFilter"] = Model.VisibilityFilter,
+        ["Keyword"] = Model.Keyword,
+        ["PageSize"] = Model.PageSize.ToString()
+    };
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="bi bi-star-half text-primary"></i> Quản lý đánh giá</h1>
+            <p class="text-muted mb-0">Kiểm duyệt nội dung công khai và ẩn/hiện đánh giá.</p>
+        </div>
+        <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Dashboard
+        </a>
+    </div>
+
+    <form class="card p-3 mb-4" method="get" asp-area="Admin" asp-controller="ReviewManagement" asp-action="Index">
+        <div class="row g-2 align-items-end">
+            <div class="col-lg-3">
+                <label class="form-label small text-muted" for="Keyword">Tìm kiếm</label>
+                <input id="Keyword" name="Keyword" value="@Model.Keyword" class="form-control" placeholder="Nội dung, khách, mã booking..." />
+            </div>
+            <div class="col-sm-4 col-lg-3">
+                <label class="form-label small text-muted" for="CourtId">Sân</label>
+                <select id="CourtId" name="CourtId" class="form-select">
+                    <option value="">Tất cả sân</option>
+                    @foreach (var court in Model.Courts)
+                    {
+                        <option value="@court.Id" selected="@(Model.CourtId == court.Id)">@court.DisplayName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-4 col-lg-2">
+                <label class="form-label small text-muted" for="Rating">Số sao</label>
+                <select id="Rating" name="Rating" class="form-select">
+                    <option value="">Tất cả</option>
+                    @for (var rating = 5; rating >= 1; rating--)
+                    {
+                        <option value="@rating" selected="@(Model.Rating == rating)">@rating sao</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-4 col-lg-2">
+                <label class="form-label small text-muted" for="VisibilityFilter">Hiển thị</label>
+                <select id="VisibilityFilter" name="VisibilityFilter" class="form-select">
+                    <option value="All" selected="@(Model.VisibilityFilter == "All")">Tất cả</option>
+                    <option value="Visible" selected="@(Model.VisibilityFilter == "Visible")">Đang hiện</option>
+                    <option value="Hidden" selected="@(Model.VisibilityFilter == "Hidden")">Đã ẩn</option>
+                </select>
+            </div>
+            <div class="col-lg-2 d-grid">
+                <button class="btn btn-primary"><i class="bi bi-funnel"></i> Lọc</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Đánh giá</th><th>Khách hàng</th><th>Sân</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead>
+                <tbody>
+                @if (Model.Reviews.Count == 0)
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu phù hợp.</td></tr>
+                }
+                @foreach (var review in Model.Reviews)
+                {
+                    <tr>
+                        <td style="min-width: 260px">
+                            <div class="text-warning">@string.Concat(Enumerable.Repeat("★", review.Rating))<span class="text-muted">@string.Concat(Enumerable.Repeat("★", 5 - review.Rating))</span></div>
+                            <div>@review.Comment</div>
+                            @if (!string.IsNullOrWhiteSpace(review.OwnerReply))
+                            {
+                                <div class="small text-muted mt-1"><i class="bi bi-reply"></i> Chủ sân: @review.OwnerReply</div>
+                            }
+                            <div class="small text-muted">Booking: @review.BookingCode</div>
+                        </td>
+                        <td>@review.CustomerName<br /><small class="text-muted">@review.CustomerEmail</small></td>
+                        <td>@review.CourtName<br /><small class="text-muted">@review.ComplexName</small></td>
+                        <td><span class="badge @(review.IsVisible ? "text-bg-success" : "text-bg-secondary")">@(review.IsVisible ? "Đang hiện" : "Đã ẩn")</span></td>
+                        <td>@review.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <form method="post" asp-area="Admin" asp-controller="ReviewManagement" asp-action="SetVisibility">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="reviewId" value="@review.Id" />
+                                <input type="hidden" name="isVisible" value="@(!review.IsVisible)" />
+                                <input type="hidden" name="CourtId" value="@Model.CourtId" />
+                                <input type="hidden" name="Rating" value="@Model.Rating" />
+                                <input type="hidden" name="VisibilityFilter" value="@Model.VisibilityFilter" />
+                                <input type="hidden" name="Keyword" value="@Model.Keyword" />
+                                <input type="hidden" name="Page" value="@Model.Page" />
+                                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                <button class="btn btn-sm @(review.IsVisible ? "btn-outline-danger" : "btn-outline-success")">
+                                    <i class="bi @(review.IsVisible ? "bi-eye-slash" : "bi-eye")"></i> @(review.IsVisible ? "Ẩn" : "Hiện")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <partial name="~/Views/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, TotalResults = Model.TotalCount, PageSize = Model.PageSize, Controller = "ReviewManagement", Action = "Index", Area = "Admin", ItemLabel = "đánh giá", RouteValues = routeValues })" />
+</div>

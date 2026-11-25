@@ -1,0 +1,41 @@
+@* File: Views/Shared/_StarRating.cshtml
+   Hiển thị ngôi sao đánh giá.
+   Ví dụ: <partial name="_StarRating" model="@(new StarRatingViewModel(4.5) { Count = 12 })" /> *@
+@model StarRatingViewModel
+@{
+    var score = Math.Clamp(Model?.Rating ?? 0d, 0d, 5d);
+    var showScore = Model?.ShowScore ?? true;
+    var count = Model?.Count;
+    var starClass = string.IsNullOrWhiteSpace(Model?.StarClass) ? "fs-6" : Model!.StarClass;
+}
+<span class="court-rating">
+    <span class="rating-stars @starClass" aria-hidden="true">
+        @for (var i = 1; i <= 5; i++)
+        {
+            if (score >= i)
+            {
+                <i class="bi bi-star-fill"></i>
+            }
+            else if (score >= i - 0.5)
+            {
+                <i class="bi bi-star-half"></i>
+            }
+            else
+            {
+                <i class="bi bi-star"></i>
+            }
+        }
+    </span>
+
+    @if (showScore)
+    {
+        <span class="rating-value">@score.ToString("0.0")</span>
+    }
+
+    @if (count.HasValue)
+    {
+        <span class="rating-count">(@count đánh giá)</span>
+    }
+
+    <span class="visually-hidden">@score.ToString("0.0") trên 5 sao</span>
+</span>

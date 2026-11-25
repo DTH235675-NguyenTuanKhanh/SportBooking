@@ -1,0 +1,20 @@
+@model OwnerReviewItem
+@{
+    ViewData["Title"] = "Phản hồi đánh giá";
+    var draft = ViewData["DraftReply"] as string ?? Model.Reply;
+}
+<div class="container py-4">
+    <a class="btn btn-outline-secondary mb-3" asp-action="Index">Về đánh giá sân</a>
+    <h1 class="h3">Phản hồi đánh giá</h1>
+    <form class="card p-3 p-md-4" method="post" asp-action="Reply" asp-route-id="@Model.Id" data-qr-submit>
+        <p class="text-break mb-1"><strong>@Model.Court</strong> · @Model.Rating/5 sao · @Model.Customer</p>
+        <p class="text-break">@Model.Comment</p>
+        <label for="reply" class="form-label">Phản hồi công khai</label>
+        <textarea id="reply" name="reply" class="form-control" rows="5" maxlength="1000" aria-describedby="replyError" required>@draft</textarea>
+        <div id="replyError" class="text-danger mt-2" role="alert">@Html.ValidationMessage("reply")</div>
+        <button class="btn btn-primary align-self-start mt-3" type="submit">Lưu phản hồi</button>
+    </form>
+</div>
+@section Scripts {
+    <script src="~/js/bank-transfer.js" asp-append-version="true" defer></script>
+}

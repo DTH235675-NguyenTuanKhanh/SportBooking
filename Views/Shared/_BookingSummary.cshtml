@@ -1,0 +1,31 @@
+@model BookingCreateViewModel
+<aside class="booking-summary" aria-labelledby="bookingSummaryTitle">
+    <div class="summary-heading"><i class="bi bi-receipt" aria-hidden="true"></i><h2 class="booking-summary-title" id="bookingSummaryTitle">Lịch đặt của bạn</h2></div>
+    @if (!string.IsNullOrWhiteSpace(Model.CourtImageUrl))
+    {
+        <img src="@Model.CourtImageUrl" alt="@Model.CourtName" class="summary-image" width="640" height="400" />
+    }
+    <p class="summary-court-name">@Model.CourtName</p>
+    <p class="text-muted small mb-1">@Model.ComplexName</p>
+    <p class="text-muted small mb-3"><i class="bi bi-geo-alt" aria-hidden="true"></i> @Model.ComplexAddress</p>
+    <dl class="mb-0">
+        <div class="summary-row"><dt>Môn thể thao</dt><dd>@Model.SportTypeName</dd></div>
+        <div class="summary-row"><dt>Ngày chơi</dt><dd id="summaryDate">@Model.BookingDate.ToString("dd/MM/yyyy")</dd></div>
+        <div class="summary-row"><dt>Thanh toán</dt><dd id="summaryPayment">@(Model.PaymentMethod == "BankTransfer" ? "Chuyển khoản qua QR" : "Tại quầy")</dd></div>
+    </dl>
+    <div class="summary-slots">
+        <p class="text-muted small mb-2">Khung giờ đã chọn</p>
+        <div class="selected-slots" id="selectedSlotChips"><span class="text-muted small">Chưa chọn khung giờ nào.</span></div>
+    </div>
+    <input type="hidden" id="totalAmountSelected" name="TotalAmount" value="@Model.TotalAmount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+    <div class="summary-total">
+        <span class="fw-semibold">Tổng tạm tính</span>
+        <strong class="booking-summary-total" id="totalAmountPreview">@Model.TotalAmount.ToString("N0") ₫</strong>
+    </div>
+    <p id="bookingLiveSummary" class="visually-hidden" role="status" aria-atomic="true"></p>
+    <p class="small text-muted mt-3">Giá trọn khung theo ngày chơi. Nếu giờ hoặc giá thay đổi, bạn cần kiểm tra và xác nhận lại trước khi đặt.</p>
+    <button type="submit" class="btn btn-primary btn-lg w-100" id="bookingSubmit"><i class="bi bi-check2-circle" aria-hidden="true"></i> Xác nhận đặt sân</button>
+    <p class="small text-muted text-center mt-2 mb-0">Chỗ được kiểm tra lại khi bạn xác nhận.</p>
+    <a class="btn btn-link w-100 mt-2" asp-controller="Court" asp-action="Detail" asp-route-id="@Model.CourtId"
+       asp-route-returnUrl="@(ViewData["SearchReturnUrl"] as string)" asp-route-bookingDate="@Model.BookingDate.ToString("yyyy-MM-dd")"><i class="bi bi-arrow-left" aria-hidden="true"></i> Quay lại trang sân</a>
+</aside>

@@ -1,0 +1,146 @@
+@* File: Views/Booking/Cancel.cshtml *@
+@model BookingCancelViewModel
+@{
+    ViewData["Title"] = "Hủy lịch đặt sân";
+    ViewData["MetaDescription"] = "Xác nhận hủy lịch đặt sân kèm lý do.";
+
+    var quickReasons = new[]
+    {
+        "Bận công việc đột xuất",
+        "Thời tiết không thuận lợi",
+        "Đặt nhầm sân / nhầm khung giờ",
+        "Đủ người nên phải đổi sân khác",
+        "Sân không đúng như mô tả"
+    };
+}
+
+<div class="container py-4">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="MyBookings">Lịch đặt sân</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="Detail" asp-route-id="@Model.BookingId">@Model.BookingCode</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Hủy lịch đặt</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body p-4">
+                    <div class="d-flex gap-3 align-items-start mb-4">
+                        <div class="success-hero-icon" style="width:56px;height:56px;font-size:1.75rem;background:#FEE2E2;color:#DC2626;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <div>
+                            <h1 class="h4 mb-1">Hủy lịch đặt @Model.BookingCode</h1>
+                            <p class="text-muted mb-0">
+                                Lịch đặt sẽ bị hủy ngay sau khi bạn xác nhận và khung giờ được giải phóng cho khách khác.
+                                Vui lòng cân nhắc kỹ.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- ============ THÔNG TIN LỊCH ĐẶT ============ -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body">
+                            <dl class="mb-0">
+                                <div class="summary-row"><dt>Sân</dt><dd>@Model.CourtName</dd></div>
+                                <div class="summary-row"><dt>Cụm sân</dt><dd>@Model.ComplexName</dd></div>
+                                <div class="summary-row">
+                                    <dt>Thời gian</dt>
+                                    <dd>@Model.BookingDate.ToDate() · @Model.TimeRangeText</dd>
+                                </div>
+                                <div class="summary-row">
+                                    <dt>Thành tiền</dt>
+                                    <dd class="fw-bold text-accent">@Model.TotalAmount.ToVnd()</dd>
+                                </div>
+                                <div class="summary-row">
+                                    <dt>Trạng thái thanh toán</dt>
+                                    <dd>@(Model.PaymentStatus == (int)PaymentStatus.Paid ? "Đã thanh toán" : "Chưa thanh toán")</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    @if (Model.WillRefund)
+                    {
+                        <div class="alert alert-info d-flex gap-2">
+                            <i class="bi bi-cash-stack"></i>
+                            <div>
+                                Lịch đặt đã được thanh toán. Sau khi hủy, khoản thanh toán sẽ chuyển sang
+                                <strong>Chờ hoàn tiền</strong>. Vui lòng liên hệ chủ sân để xử lý trả lại tiền.
+                            </div>
+                        </div>
+                    }
+
+                    <div class="alert alert-warning d-flex gap-2">
+                        <i class="bi bi-shield-exclamation"></i>
+                        <div>
+                            Chỉ hủy được lịch đặt trước giờ chơi tối thiểu <strong>@Model.MinHoursBefore giờ</strong>.
+                            Nếu thao tác này không còn hợp lệ, hệ thống sẽ từ chối và thông báo rõ lý do.
+                        </div>
+                    </div>
+
+                    <!-- ============ FORM LÝ DO ============ -->
+                    <form asp-controller="Booking" asp-action="Cancel" method="post"
+                          data-confirm="Bạn chắc chắn muốn hủy lịch đặt @Model.BookingCode? Hành động này không thể hoàn tác."
+                          data-confirm-title="Xác nhận hủy lịch đặt"
+                          data-disable-double-submit>
+                        <input type="hidden" asp-for="BookingId" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Chọn nhanh lý do</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var reason in quickReasons)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary js-quick-reason"
+                                            data-reason="@reason">
+                                        @reason
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CancellationReason" class="form-label"></label>
+                            <textarea asp-for="CancellationReason" class="form-control" rows="4" maxlength="500"
+                                      placeholder="Vui lòng nhập lý do hủy (tối thiểu 10 ký tự). Chủ sân sẽ nhận được thông báo này."></textarea>
+                            <div class="d-flex justify-content-between">
+                                <span asp-validation-for="CancellationReason" class="text-danger small"></span>
+                                <span class="char-counter" data-counter-for="CancellationReason"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle"></i> Xác nhận hủy lịch đặt
+                            </button>
+                            <a class="btn btn-outline-secondary" asp-controller="Booking" asp-action="Detail"
+                               asp-route-id="@Model.BookingId">
+                                <i class="bi bi-arrow-left"></i> Quay lại, không hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            $('.js-quick-reason').on('click', function () {
+                var reason = $(this).data('reason');
+                var $textarea = $('#CancellationReason');
+                var current = $textarea.val().trim();
+
+                $textarea.val(current.length === 0 ? reason : current + '; ' + reason).trigger('input').trigger('focus');
+            });
+        });
+    </script>
+}

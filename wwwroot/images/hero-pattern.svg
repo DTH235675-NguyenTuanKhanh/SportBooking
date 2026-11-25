@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480" role="img" aria-hidden="true">
+  <!-- Hoa văn nền cho hero section (wwwroot/css/site.css -&gt; .hero-section::before) -->
+  <defs>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.35" />
+    </pattern>
+    <pattern id="dots" width="96" height="96" patternUnits="userSpaceOnUse">
+      <circle cx="24" cy="24" r="3" fill="#ffffff" fill-opacity="0.45" />
+    </pattern>
+  </defs>
+
+  <rect width="480" height="480" fill="url(#grid)" />
+  <rect width="480" height="480" fill="url(#dots)" />
+
+  <!-- Vòng tròn mô phỏng bóng sân -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.30" stroke-width="2">
+    <circle cx="240" cy="240" r="150" />
+    <circle cx="240" cy="240" r="96" />
+    <path d="M90 240H390" />
+    <path d="M240 90V390" />
+    <rect x="130" y="150" width="220" height="180" rx="8" />
+  </g>
+</svg>

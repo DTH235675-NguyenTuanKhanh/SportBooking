@@ -1,0 +1,61 @@
+@* File: Views/Shared/_Pagination.cshtml
+   Phân trang dùng chung, giữ nguyên bộ lọc hiện tại qua PaginationViewModel.RouteValues. *@
+@model PaginationViewModel
+@{
+    if (!Model.ShouldRender)
+    {
+        return;
+    }
+}
+<nav class="pagination-wrapper" aria-label="Phân trang">
+    <p class="text-muted small mb-2">
+        Hiển thị <strong>@Model.FromItem - @Model.ToItem</strong> trong tổng số
+        <strong>@Model.TotalResults</strong> @Model.ItemLabel
+    </p>
+
+    <ul class="pagination justify-content-center mb-0">
+        <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+            <a class="page-link" href="@(Model.Page <= 1 ? "#" : Model.BuildUrl(Model.Page - 1))"
+               aria-disabled="@(Model.Page <= 1 ? "true" : null)" aria-label="Trước" tabindex="@(Model.Page <= 1 ? -1 : (int?)null)">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </a>
+        </li>
+
+        @if (Model.WindowStart > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Model.BuildUrl(1)">1</a>
+            </li>
+            @if (Model.WindowStart > 2)
+            {
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            }
+        }
+
+        @for (var p = Model.WindowStart; p <= Model.WindowEnd; p++)
+        {
+            <li class="page-item @(p == Model.Page ? "active" : "")">
+                <a class="page-link" href="@Model.BuildUrl(p)"
+                   aria-current="@(p == Model.Page ? "page" : null)">@p</a>
+            </li>
+        }
+
+        @if (Model.WindowEnd < Model.TotalPages)
+        {
+            @if (Model.WindowEnd < Model.TotalPages - 1)
+            {
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            }
+            <li class="page-item">
+                <a class="page-link" href="@Model.BuildUrl(Model.TotalPages)">@Model.TotalPages</a>
+            </li>
+        }
+
+        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+            <a class="page-link" href="@(Model.Page >= Model.TotalPages ? "#" : Model.BuildUrl(Model.Page + 1))"
+               aria-disabled="@(Model.Page >= Model.TotalPages ? "true" : null)" aria-label="Sau" tabindex="@(Model.Page >= Model.TotalPages ? -1 : (int?)null)">
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</nav>

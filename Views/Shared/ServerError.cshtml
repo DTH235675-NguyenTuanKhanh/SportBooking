@@ -1,0 +1,29 @@
+@* File: Views/Shared/ServerError.cshtml
+   Trang lỗi chung - HomeController.ServerError() và Error(statusCode != 404). *@
+@{
+    ViewData["Title"] = "Có lỗi xảy ra";
+    ViewData["MetaDescription"] = "Hệ thống đang gặp sự cố.";
+}
+
+<div class="container">
+    <div class="error-page">
+        <div class="error-code"><i class="bi bi-plug-fill"></i></div>
+        <h1 class="h3 mb-2">Hệ thống đang gặp sự cố</h1>
+        <p class="text-muted mb-4">
+            Yêu cầu của bạn chưa được xử lý xong. Vui lòng thử lại sau ít phút.
+            Nếu sự cố lặp lại, hãy liên hệ hỗ trợ kèm thời gian bạn vừa thao tác.
+        </p>
+
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a class="btn btn-primary" href="javascript:location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Thử lại
+            </a>
+            <a class="btn btn-outline-primary" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-house-door"></i> Về trang chủ
+            </a>
+            <a class="btn btn-outline-secondary" href="mailto:support@sportbooking.vn">
+                <i class="bi bi-headset"></i> Liên hệ hỗ trợ
+            </a>
+        </div>
+    </div>
+</div>

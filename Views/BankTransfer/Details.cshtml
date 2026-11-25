@@ -1,0 +1,159 @@
+@using SportBooking.Services.Implementations
+@model BankTransfer
+@{
+    var isOwner = ViewData["OwnerReview"] is true;
+    var bookings = Model.Bookings.OrderBy(b => b.StartDateTime).ToArray();
+    var first = bookings[0];
+    var deadline = bookings.Min(b => b.PaymentDeadline);
+    var held = first.Status == BookingStatus.Pending && deadline > ScheduleGuard.Now;
+    var mayReport = Model.State is TransferState.AwaitingReport or TransferState.NeedsInfo;
+    var status = Model.State switch
+    {
+        TransferState.Reported => "Chờ chủ sân xác nhận",
+        TransferState.NeedsInfo => "Chưa tìm thấy giao dịch hoặc cần bổ sung",
+        TransferState.Received => "Đã xác nhận nhận tiền",
+        TransferState.ReceivedLate => "Đã ghi nhận tiền sau hạn",
+        _ => "Chờ khách chuyển khoản"
+    };
+    ViewData["Title"] = isOwner ? "Đối soát chuyển khoản" : "Chuyển khoản qua QR";
+}
+<div class="container py-4">
+    <a class="btn btn-outline-secondary mb-3" asp-area="@(isOwner ? "Owner" : "")"
+       asp-controller="@(isOwner ? "Bookings" : "Booking")" asp-action="@(isOwner ? "Index" : "MyBookings")">Về lịch đặt sân</a>
+    <h1 class="h3 mb-2">@ViewData["Title"]</h1>
+    <p class="text-muted">@first.Court.Name · <span class="text-break">@Model.GroupCode</span></p>
+    <div class="alert alert-info mb-3" role="status">
+        <strong>@status</strong>
+        @if (held)
+        {
+            <span class="d-block">Giữ chỗ đến @deadline?.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.</span>
+        }
+        else if (first.Status == BookingStatus.Expired || (first.Status == BookingStatus.Pending && deadline <= ScheduleGuard.Now))
+        {
+            <span class="d-block">Booking đã hết hạn. Chỉ đối soát khoản đã chuyển. Khung giờ không được khôi phục.</span>
+        }
+        else if (first.Status == BookingStatus.Cancelled)
+        {
+            <span class="d-block">Booking đã hủy. Xem trạng thái hoàn tiền theo từng khung bên dưới.</span>
+        }
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <section class="card p-3 p-md-4 h-100" aria-labelledby="transfer-bank">
+                <h2 class="h5" id="transfer-bank">Thông tin chuyển khoản đã cấp</h2>
+                @if (held && !isOwner && Model.State == TransferState.AwaitingReport)
+                {
+                    <p class="small text-muted">Đối chiếu người nhận khi quét. Nhập đúng số tiền và nội dung chuyển khoản trước khi báo chủ sân.</p>
+                }
+                <img src="@Url.Action("Qr", new { code = Model.GroupCode })" alt="Mã QR nhận chuyển khoản của chủ sân"
+                     width="240" class="img-fluid rounded bg-white p-2 align-self-center" data-transfer-qr />
+                <p data-transfer-image-error hidden class="alert alert-warning mt-2">Không tải được ảnh QR. Bạn vẫn có thể xem thông tin đã lưu bên dưới.</p>
+                <a class="btn btn-outline-primary my-3 align-self-start" asp-action="Qr" asp-route-code="@Model.GroupCode" asp-route-download="true">Tải ảnh QR</a>
+                <dl class="mb-2">
+                    <dt>Ngân hàng</dt><dd class="text-break">@Model.BankName</dd>
+                    <dt>Tên người nhận</dt><dd class="text-break">@Model.AccountName</dd>
+                    <dt>Số tài khoản</dt><dd class="d-flex gap-2 align-items-center flex-wrap"><span class="text-break">@Model.AccountNumber</span>
+                        <button type="button" hidden class="btn btn-outline-secondary" data-copy="@Model.AccountNumber" aria-label="Sao chép số tài khoản">Sao chép</button></dd>
+                    <dt>Số tiền</dt><dd class="fw-bold">@Model.Amount.ToString("N0") ₫</dd>
+                    <dt>Nội dung chuyển khoản</dt><dd class="d-flex gap-2 align-items-center flex-wrap"><span class="text-break">@Model.Reference</span>
+                        <button type="button" hidden class="btn btn-outline-secondary" data-copy="@Model.Reference" aria-label="Sao chép nội dung chuyển khoản">Sao chép</button></dd>
+                    <dt>Hạn báo chuyển khoản ban đầu</dt><dd>@Model.ReportDeadline.ToString("HH:mm dd/MM/yyyy") (giờ Việt Nam)</dd>
+                </dl>
+                <span class="form-text" aria-live="polite" data-copy-result></span>
+            </section>
+        </div>
+        <div class="col-lg-7">
+            <section class="card p-3 p-md-4 mb-3" aria-labelledby="transfer-bookings">
+                <h2 class="h5" id="transfer-bookings">Khung giờ đã đặt</h2>
+                @if (isOwner)
+                {
+                    <p class="text-break">Khách đặt: @first.Customer.FullName@if (first.Customer.PhoneNumber is { } phone) { <text> · @phone</text> }</p>
+                }
+                <ul class="list-group list-group-flush">
+                    @foreach (var booking in bookings)
+                    {
+                        <li class="list-group-item px-0">
+                            <div class="d-flex flex-wrap gap-2 justify-content-between"><strong>@booking.StartDateTime.ToString("dd/MM/yyyy HH:mm") – @booking.EndDateTime.ToString("HH:mm")</strong><span>@booking.TotalAmount.ToString("N0") ₫</span></div>
+                            <div class="small text-muted">@BookingService.MapBookingStatusText(booking.Status) · @BookingService.MapPaymentStatusText(booking.PaymentStatus)</div>
+                            @if (isOwner && booking.PaymentStatus == PaymentStatus.RefundPending)
+                            {
+                                <form method="post" asp-action="Refund" class="mt-2" data-qr-submit>
+                                    <input type="hidden" name="code" value="@Model.GroupCode" />
+                                    <input type="hidden" name="bookingId" value="@booking.Id" />
+                                    <label class="form-label" for="refund-@booking.Id">Ghi chú hoàn tiền</label>
+                                    <input name="note" id="refund-@booking.Id" class="form-control mb-2" maxlength="300" required />
+                                    <button type="submit" class="btn btn-outline-primary" data-qr-confirm="Bạn đã thực sự trả lại số tiền của khung này cho khách?">Xác nhận đã hoàn thủ công</button>
+                                </form>
+                            }
+                            @if (booking.Payments.SingleOrDefault(p => p.Method == PaymentMethod.BankTransfer)?.ManualRefundNote is { } refundNote)
+                            {
+                                <div class="small text-muted text-break">Ghi chú hoàn tiền: @refundNote</div>
+                            }
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            <section class="card p-3 p-md-4" aria-labelledby="transfer-review">
+                <h2 class="h5" id="transfer-review">Thông báo chuyển khoản</h2>
+                <p class="small text-muted">Thông báo và ảnh biên lai dùng để đối soát. Chủ sân kiểm tra số tiền thực nhận trong tài khoản ngân hàng.</p>
+                @if (!isOwner && mayReport)
+                {
+                    <form asp-action="Report" method="post" enctype="multipart/form-data" data-qr-submit>
+                        <input type="hidden" name="code" value="@Model.GroupCode" />
+                        <label class="form-label" for="transferReceipt">Ảnh biên lai (không bắt buộc)</label>
+                        <input class="form-control mb-2" id="transferReceipt" name="receipt" type="file" accept="image/png,image/jpeg" aria-describedby="transferReceiptHelp" />
+                        <p class="form-text" id="transferReceiptHelp">PNG hoặc JPEG, tối đa 2 MB. Gửi ảnh chỉ khi đã chuyển tiền.</p>
+                        <button type="submit" class="btn btn-primary">Tôi đã chuyển khoản</button>
+                    </form>
+                }
+                else if (isOwner && Model.State == TransferState.Reported)
+                {
+                    <form asp-action="Review" method="post" data-qr-submit>
+                        <input type="hidden" name="code" value="@Model.GroupCode" />
+                        <input type="hidden" name="reportId" value="@Model.Reports.Max(r => r.Id)" />
+                        <label for="review-note" class="form-label">Ghi chú xử lý</label>
+                        <textarea rows="2" maxlength="300" name="note" id="review-note" class="form-control mb-2" aria-describedby="review-help"></textarea>
+                        <p class="form-text" id="review-help">Bắt buộc nhập khi chưa thấy giao dịch, sai số tiền hoặc cần khách bổ sung.</p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button name="decision" value="received" type="submit" class="btn btn-primary" data-qr-confirm="Bạn đã đối chiếu mã chuyển khoản và nhận đủ số tiền trong tài khoản ngân hàng?">Xác nhận đã nhận đủ tiền</button>
+                            <button name="decision" value="needs-info" type="submit" class="btn btn-outline-secondary">Chưa tìm thấy / cần bổ sung</button>
+                        </div>
+                    </form>
+                }
+
+                @if (Model.Reports.Count == 0)
+                {
+                    <p class="small text-muted mt-3 mb-0">Chưa có thông báo từ khách.</p>
+                }
+                else
+                {
+                    <ol class="list-group list-group-flush mt-3">
+                        @foreach (var report in Model.Reports.OrderByDescending(r => r.Id))
+                        {
+                            <li class="list-group-item px-0">
+                                <strong>Khách báo lúc @report.ReportedAt.AddHours(7).ToString("HH:mm dd/MM/yyyy")</strong>
+                                @if (report.ReceiptId.HasValue)
+                                {
+                                    <a class="btn btn-outline-primary ms-1" asp-action="Receipt" asp-route-code="@Model.GroupCode" asp-route-reportId="@report.Id">Xem biên lai</a>
+                                }
+                                @if (report.HandledAt.HasValue)
+                                {
+                                    <div class="small mt-2">
+                                        Chủ sân xử lý lúc @report.HandledAt.Value.AddHours(7).ToString("HH:mm dd/MM/yyyy").
+                                        @(report.Outcome == TransferState.NeedsInfo ? "Chưa tìm thấy giao dịch / cần bổ sung." : "Đã xác nhận nhận tiền.")
+                                    </div>
+                                    <p class="small text-break mb-0">@report.HandlingNote</p>
+                                }
+                            </li>
+                        }
+                    </ol>
+                }
+            </section>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/bank-transfer.js" asp-append-version="true" defer></script>
+}

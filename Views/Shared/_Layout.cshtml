@@ -1,0 +1,311 @@
+@* File: Views/Shared/_Layout.cshtml *@
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    // --- Logic highlight link đang hoạt động trong navbar ---
+    var currentController = (string?)ViewContext.RouteData.Values["controller"] ?? "Home";
+    var currentAction = (string?)ViewContext.RouteData.Values["action"] ?? "Index";
+
+    bool IsCurrent(string controller, string action = "Index")
+        => (controller == "Court" && action == "Search"
+            && (currentController == "Court" || (currentController == "Booking" && currentAction == "Create")))
+           || (string.Equals(currentController, controller, StringComparison.OrdinalIgnoreCase)
+           && (action == "Index"
+               ? string.Equals(currentAction, "Index", StringComparison.OrdinalIgnoreCase)
+               : string.Equals(currentAction, action, StringComparison.OrdinalIgnoreCase)
+                 || (controller == "Booking" && action == "MyBookings"
+                     && currentAction.Equals("Confirmation", StringComparison.OrdinalIgnoreCase))));
+
+    string NavClass(string controller, string action = "Index")
+        => IsCurrent(controller, action) ? "nav-link active" : "nav-link";
+
+    string? AriaCurrent(string controller, string action = "Index")
+        => IsCurrent(controller, action) ? "page" : null;
+
+    var metaDescription = ViewData["MetaDescription"] as string
+        ?? "SportBooking - Đặt sân thể thao online: bóng đá mini, cầu lông, tennis, bóng rổ, pickleball. Tìm sân, chọn khung giờ và đặt trực tuyến.";
+    var isAuthed = SignInManager.IsSignedIn(User);
+    var isCustomer = User.IsInRole(AppConstants.Roles.Customer);
+    var isOwner = User.IsInRole(AppConstants.Roles.Owner);
+    var isAdmin = User.IsInRole(AppConstants.Roles.Admin);
+}
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] is string t && !string.IsNullOrWhiteSpace(t) ? t + " - SportBooking" : "SportBooking - Đặt sân thể thao online")</title>
+    <meta name="description" content="@metaDescription" />
+    <meta property="og:title" content="@ViewData["Title"] - SportBooking" />
+    <meta property="og:description" content="@metaDescription" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+
+    <!-- Google Fonts: Be Vietnam Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 -->
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sports-theme.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="page-body sports-theme">
+    <a class="skip-link" href="#mainContent">Bỏ qua tới nội dung chính</a>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top" aria-label="Điều hướng chính">
+        <div class="container">
+            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-trophy-fill" aria-hidden="true"></i>
+                <span>Sport</span><span class="brand-suffix">Booking</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+                    aria-controls="navbarMain" aria-expanded="false" aria-label="Mở menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="@NavClass("Home")" asp-area="" asp-controller="Home" asp-action="Index" aria-current="@AriaCurrent("Home")">
+                            <i class="bi bi-house-door" aria-hidden="true"></i> Trang chủ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="@NavClass("Court", "Search")" asp-area="" asp-controller="Court" asp-action="Search" aria-current="@AriaCurrent("Court", "Search")">
+                            <i class="bi bi-search" aria-hidden="true"></i> Tìm sân
+                        </a>
+                    </li>
+                    @* Trang "Lịch đặt sân" yêu cầu role Customer (BookingController [Authorize(Roles=Customer)]).
+                       Chủ sân / admin không thấy link này để tránh bị chuyển tới trang AccessDenied. *@
+                    @if (isAuthed && isCustomer)
+                    {
+                        <li class="nav-item">
+                            <a class="@NavClass("Booking", "MyBookings")" asp-area="" asp-controller="Booking" asp-action="MyBookings"
+                               aria-current="@AriaCurrent("Booking", "MyBookings")">
+                                <i class="bi bi-calendar-check" aria-hidden="true"></i> Lịch đặt sân
+                            </a>
+                        </li>
+                    }
+                    <li class="nav-item">
+                        <a class="@NavClass("Home", "Privacy")" asp-area="" asp-controller="Home" asp-action="Privacy" aria-current="@AriaCurrent("Home", "Privacy")">
+                            <i class="bi bi-shield-check" aria-hidden="true"></i> Chính sách
+                        </a>
+                    </li>
+                </ul>
+
+                <form class="d-lg-none my-2 w-100" asp-area="" asp-controller="Court" asp-action="Search" method="get" role="search">
+                    <div class="input-group">
+                        <input type="search" class="form-control" name="Keyword" placeholder="Tìm sân, cụm sân..." aria-label="Tìm sân">
+                        <button class="btn btn-primary" type="submit" aria-label="Tìm sân"><i class="bi bi-search" aria-hidden="true"></i></button>
+                    </div>
+                </form>
+
+                <ul class="navbar-nav align-items-lg-center">
+                    @if (isAuthed)
+                    {
+                        var currentUser = await UserManager.GetUserAsync(User);
+                        var userRoles = currentUser is null
+                            ? new List<string>()
+                            : (await UserManager.GetRolesAsync(currentUser)).ToList();
+                        var displayRole = userRoles.FirstOrDefault() ?? "User";
+
+                        <li class="nav-item d-none d-lg-block me-lg-2">
+                            <a class="btn btn-sm btn-outline-secondary" asp-area="" asp-controller="Court" asp-action="Search">
+                                Đặt sân nhanh
+                            </a>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu tài khoản">
+                                @if (!string.IsNullOrEmpty(currentUser?.AvatarUrl))
+                                {
+                                    <img src="@currentUser.AvatarUrl" alt="Avatar của @currentUser.FullName"
+                                         class="avatar-circle me-2" width="32" height="32">
+                                }
+                                else
+                                {
+                                    <div class="avatar-placeholder avatar-circle me-2" aria-hidden="true">
+                                        <i class="bi bi-person-fill" aria-hidden="true"></i>
+                                    </div>
+                                }
+                                <span class="d-none d-lg-inline">@currentUser?.FullName</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li>
+                                    <span class="dropdown-item-text small text-muted">
+                                        @currentUser?.Email
+                                        <br />
+                                        <span class="badge badge-role mt-1">@displayRole</span>
+                                    </span>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Index">
+                                        <i class="bi bi-person" aria-hidden="true"></i> Hồ sơ cá nhân
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-controller="Profile" asp-action="Edit">
+                                        <i class="bi bi-pencil-square" aria-hidden="true"></i> Chỉnh sửa hồ sơ
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="ChangePassword">
+                                        <i class="bi bi-key" aria-hidden="true"></i> Đổi mật khẩu
+                                    </a>
+                                </li>
+                                @if (userRoles.Contains(AppConstants.Roles.Owner) && currentUser?.IsActive == true && currentUser.ApprovalStatus == OwnerApprovalStatus.Approved)
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Owner" asp-controller="Dashboard" asp-action="Index">
+                                            <i class="bi bi-shop" aria-hidden="true"></i> Khu vực chủ sân
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Owner" asp-controller="Bookings" asp-action="Index">
+                                            <i class="bi bi-calendar2-check" aria-hidden="true"></i> Quản lý lịch đặt sân
+                                        </a>
+                                    </li>
+                                }
+                                @if (userRoles.Contains(AppConstants.Roles.Admin))
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+                                            <i class="bi bi-shield-check" aria-hidden="true"></i> Quản trị hệ thống
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Admin" asp-controller="UserManagement" asp-action="Index">
+                                            <i class="bi bi-people" aria-hidden="true"></i> Quản lý tài khoản
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Admin" asp-controller="SportTypeManagement" asp-action="Index">
+                                            <i class="bi bi-grid" aria-hidden="true"></i> Quản lý loại sân
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="Admin" asp-controller="ReviewManagement" asp-action="Index">
+                                            <i class="bi bi-star-half" aria-hidden="true"></i> Quản lý đánh giá
+                                        </a>
+                                    </li>
+                                }
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Đăng xuất
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="@NavClass("Account", "Login")" asp-area="" asp-controller="Account" asp-action="Login">
+                                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Đăng nhập
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-outline-secondary btn-sm ms-lg-2" asp-area="" asp-controller="Account" asp-action="Register">
+                                <i class="bi bi-person-plus" aria-hidden="true"></i> Đăng ký
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <partial name="_SportsBackdrop" />
+
+    <!-- Alert messages (TempData) -->
+    <div class="container">
+        <partial name="_Alerts" />
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent" tabindex="-1">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer bg-dark text-white pt-5 pb-4 mt-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <p class="h5 fw-bold mb-3">
+                        <i class="bi bi-trophy-fill" aria-hidden="true"></i> SportBooking
+                    </p>
+                    <p class="text-white-50 small mb-3">
+                        Hệ thống đặt sân thể thao trực tuyến: tìm sân theo khu vực, xem giá theo khung giờ,
+                        đặt và theo dõi lịch chơi của bạn.
+                    </p>
+                    <div class="social-links">
+                        <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Facebook"><i class="bi bi-facebook" aria-hidden="true"></i></a>
+                        <a href="https://zalo.me" target="_blank" rel="noopener" aria-label="Zalo"><i class="bi bi-chat-heart" aria-hidden="true"></i></a>
+                        <a href="mailto:support@sportbooking.vn" aria-label="Email"><i class="bi bi-envelope-fill" aria-hidden="true"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <h2 class="h6 fw-bold mb-3">Khách hàng</h2>
+                    <ul class="list-unstyled footer-links">
+                        <li><a asp-area="" asp-controller="Court" asp-action="Search">Tìm sân</a></li>
+                        <li><a asp-area="" asp-controller="Booking" asp-action="MyBookings">Lịch đặt của tôi</a></li>
+                        <li><a href="@Url.Action("Index", "Home", new { area = "" })#huong-dan">Hướng dẫn đặt sân</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Chính sách hủy &amp; hoàn tiền</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h2 class="h6 fw-bold mb-3">Chủ sân</h2>
+                    <ul class="list-unstyled footer-links">
+                        <li><a asp-area="" asp-controller="Account" asp-action="Register">Đăng ký tài khoản chủ sân</a></li>
+                        <li><a href="@Url.Action("Index", "Home", new { area = "" })#the-loai">Môn thể thao hỗ trợ</a></li>
+                        <li><a asp-area="" asp-controller="Home" asp-action="Privacy">Quy chế hoạt động</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h2 class="h6 fw-bold mb-3">Liên hệ</h2>
+                    <ul class="list-unstyled footer-contact">
+                        <li><i class="bi bi-telephone-fill" aria-hidden="true"></i> <a href="tel:19001234">1900 1234</a></li>
+                        <li><i class="bi bi-envelope-fill" aria-hidden="true"></i> <a href="mailto:support@sportbooking.vn">support@sportbooking.vn</a></li>
+                        <li><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Long Xuyên, An Giang</li>
+                        <li><i class="bi bi-clock-fill" aria-hidden="true"></i> Hỗ trợ 08:00 - 22:00 hằng ngày</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-secondary" />
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 footer-bottom">
+                <span>&copy; 2026 SportBooking. Đồ án kết thúc môn.</span>
+                <span class="small text-white-50">Tìm sân. Chọn giờ. Cùng ra sân.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/sports-theme.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,44 @@
+﻿@* File: Views/Shared/_ValidationScriptsPartial.cshtml *@
+@* jQuery Validation được load từ wwwroot/lib trong _Layout.cshtml *@
+@* Partial này để giữ tương thích với convention của ASP.NET Core *@
+
+<script>
+    // Cấu hình validation tiếng Việt
+    if ($.validator) {
+        $.validator.setDefaults({
+            errorClass: 'is-invalid',
+            validClass: 'is-valid',
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group, .mb-3, .mb-4').append(error);
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid').removeClass('is-valid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+
+        // Thông báo lỗi tiếng Việt
+        $.validator.messages = {
+            required: "Trường này là bắt buộc.",
+            remote: "Vui lòng kiểm tra lại giá trị này.",
+            email: "Vui lòng nhập địa chỉ email hợp lệ.",
+            url: "Vui lòng nhập URL hợp lệ.",
+            date: "Vui lòng nhập ngày hợp lệ.",
+            dateISO: "Vui lòng nhập ngày hợp lệ (ISO).",
+            number: "Vui lòng nhập số hợp lệ.",
+            digits: "Vui lòng chỉ nhập chữ số.",
+            creditcard: "Vui lòng nhập số thẻ tín dụng hợp lệ.",
+            equalTo: "Vui lòng nhập lại giá trị giống nhau.",
+            maxlength: $.validator.format("Vui lòng nhập không quá {0} ký tự."),
+            minlength: $.validator.format("Vui lòng nhập ít nhất {0} ký tự."),
+            rangelength: $.validator.format("Vui lòng nhập từ {0} đến {1} ký tự."),
+            range: $.validator.format("Vui lòng nhập giá trị từ {0} đến {1}."),
+            max: $.validator.format("Vui lòng nhập giá trị nhỏ hơn hoặc bằng {0}."),
+            min: $.validator.format("Vui lòng nhập giá trị lớn hơn hoặc bằng {0}.")
+        };
+    }
+</script>

@@ -1,0 +1,40 @@
+@model ComplexListViewModel
+@{ ViewData["Title"] = "Quản lý cụm sân"; }
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div><h1 class="h3">Quản lý cụm sân</h1><p class="text-muted mb-0">Cập nhật địa chỉ, liên hệ và trạng thái các cụm sân của bạn.</p></div>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Thêm cụm sân</a>
+    </div>
+    <form method="get" class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6"><label for="keyword" class="form-label">Tìm cụm sân</label><input id="keyword" name="keyword" value="@Model.Keyword" class="form-control" placeholder="Tên hoặc địa chỉ" /></div>
+            <div class="col-md-3"><label for="isActive" class="form-label">Trạng thái</label><select id="isActive" name="isActive" class="form-select"><option value="">Tất cả</option><option value="true" selected="@(Model.IsActive == true)">Đang hoạt động</option><option value="false" selected="@(Model.IsActive == false)">Ngừng hoạt động</option></select></div>
+            <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary">Lọc</button><a asp-action="Index" class="btn btn-outline-secondary">Đặt lại</a></div>
+        </div>
+    </form>
+    @if (Model.Items.Count == 0)
+    {
+        <div class="card text-center p-5"><i class="bi bi-buildings fs-1 text-primary" aria-hidden="true"></i><h2 class="h5 mt-3">Chưa có cụm sân phù hợp</h2><p class="text-muted mb-0">Thêm cụm sân đầu tiên hoặc thay đổi bộ lọc để xem kết quả.</p></div>
+    }
+    else
+    {
+        <div class="card table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <caption class="px-3">@Model.TotalCount cụm sân. Số sân không bao gồm sân đã xóa.</caption>
+                <thead><tr><th scope="col">Cụm sân</th><th scope="col">Địa chỉ</th><th scope="col">Số sân</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td><strong>@item.Name</strong><div class="small text-muted text-break">@item.PhoneNumber<br />@item.Email</div></td>
+                            <td class="text-break">@item.Address<div class="small text-muted">@item.District, @item.Province</div></td><td>@item.CourtCount</td>
+                            <td><span class="badge @(item.IsActive ? "text-bg-success" : "text-bg-secondary")">@(item.IsActive ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
+                            <td><div class="d-flex gap-2 flex-wrap"><a asp-controller="Courts" asp-action="Index" asp-route-complexId="@item.Id" class="btn btn-primary btn-sm" aria-label="Quản lý sân trong @item.Name">Quản lý sân</a><a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm" aria-label="Sửa @item.Name">Chỉnh sửa</a></div></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    <partial name="~/Views/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { Page = Model.Page, TotalPages = Model.TotalPages, TotalResults = Model.TotalCount, PageSize = 10, Controller = "Complexes", Action = "Index", Area = "Owner", ItemLabel = "cụm sân", RouteValues = new Dictionary<string, string?> { ["keyword"] = Model.Keyword, ["isActive"] = Model.IsActive?.ToString() } })" />
+</div>

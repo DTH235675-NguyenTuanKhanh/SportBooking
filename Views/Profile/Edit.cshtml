@@ -1,0 +1,169 @@
+@* File: Views/Profile/Edit.cshtml *@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "Cập nhật hồ sơ";
+}
+
+<div class="container py-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Profile" asp-action="Index">Hồ sơ cá nhân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Cập nhật</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> Cập nhật hồ sơ
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @* enctype bắt buộc để upload được file *@
+                    <form asp-controller="Profile" asp-action="Edit" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        @* Các trường ẩn cần thiết để hiển thị đúng và chống mất dữ liệu khi submit *@
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="CurrentRole" />
+                        <input type="hidden" asp-for="AvatarUrl" />
+
+                        @* ===== Ảnh đại diện ===== *@
+                        <div class="mb-4">
+                            <label class="form-label">Ảnh đại diện</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div>
+                                    @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                                    {
+                                        <img src="@Model.AvatarUrl" alt="Avatar" id="avatarPreview"
+                                             class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #E2E8F0;" />
+                                    }
+                                    else
+                                    {
+                                        <img src="" alt="Avatar" id="avatarPreview"
+                                             class="rounded-circle d-none" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #E2E8F0;" />
+                                        <div id="avatarPlaceholder" class="rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width: 100px; height: 100px; background-color: #F1F5F9; border: 3px solid #E2E8F0;">
+                                            <i class="bi bi-person-fill text-secondary" style="font-size: 3rem;"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input asp-for="AvatarFile" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" id="avatarInput" />
+                                    <span asp-validation-for="AvatarFile" class="text-danger small"></span>
+                                    <div class="form-text small">
+                                        Định dạng: JPG, PNG, WEBP. Dung lượng tối đa 2MB.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        @* ===== Thông tin cá nhân ===== *@
+                        <h6 class="fw-bold mb-3 text-secondary">
+                            <i class="bi bi-person-vcard"></i> Thông tin cá nhân
+                        </h6>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input value="@Model.Email" class="form-control" disabled readonly />
+                            <div class="form-text small">Email không thể thay đổi sau khi đăng ký.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DateOfBirth" class="form-label"></label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control" />
+                                <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" placeholder="Số nhà, đường, quận, tỉnh" />
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+
+                        @* ===== Thông tin doanh nghiệp (chỉ với Chủ sân) ===== *@
+                        @if (Model.CurrentRole == AppConstants.Roles.Owner)
+                        {
+                            <h6 class="fw-bold mb-3 text-secondary">
+                                <i class="bi bi-building"></i> Thông tin doanh nghiệp
+                            </h6>
+
+                            <div class="mb-3">
+                                <label asp-for="BusinessName" class="form-label"></label>
+                                <input asp-for="BusinessName" class="form-control" />
+                                <span asp-validation-for="BusinessName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="BusinessPhone" class="form-label"></label>
+                                <input asp-for="BusinessPhone" class="form-control" />
+                                <span asp-validation-for="BusinessPhone" class="text-danger small"></span>
+                            </div>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Lưu thay đổi
+                            </button>
+                            <a asp-controller="Profile" asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            // Xem trước ảnh đại diện ngay khi chọn file.
+            $('#avatarInput').on('change', function () {
+                var file = this.files[0];
+                if (!file) {
+                    return;
+                }
+
+                // Kiểm tra dung lượng tối đa 2MB ở phía client.
+                var maxSize = 2 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ảnh quá lớn',
+                        text: 'Dung lượng ảnh tối đa là 2MB. Vui lòng chọn ảnh khác.'
+                    });
+                    $(this).val('');
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#avatarPreview').attr('src', e.target.result).removeClass('d-none');
+                    $('#avatarPlaceholder').addClass('d-none');
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+}

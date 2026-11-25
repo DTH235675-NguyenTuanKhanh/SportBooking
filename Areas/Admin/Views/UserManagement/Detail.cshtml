@@ -1,0 +1,133 @@
+@model AdminUserDetailViewModel
+@{
+    ViewData["Title"] = "Chi tiết tài khoản";
+    var statusText = !Model.IsActive
+        ? "Đã khóa"
+        : Model.IsTemporarilyLocked
+            ? "Khóa tạm thời"
+            : "Hoạt động";
+    var statusClass = !Model.IsActive
+        ? "text-bg-danger"
+        : Model.IsTemporarilyLocked
+            ? "text-bg-warning"
+            : "text-bg-success";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Chi tiết tài khoản</h1>
+            <p class="text-muted mb-0">Thông tin tài khoản, booking và dữ liệu sân liên quan.</p>
+        </div>
+        <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="UserManagement" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Danh sách tài khoản
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h2 class="h4 mb-1">@Model.FullName</h2>
+                        <div class="text-muted">@Model.Email</div>
+                    </div>
+                    <span class="badge @statusClass">@statusText</span>
+                </div>
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-5">Vai trò</dt>
+                    <dd class="col-sm-7">@string.Join(", ", Model.Roles)</dd>
+                    <dt class="col-sm-5">Điện thoại</dt>
+                    <dd class="col-sm-7">@(Model.PhoneNumber ?? "Chưa cập nhật")</dd>
+                    <dt class="col-sm-5">Ngày sinh</dt>
+                    <dd class="col-sm-7">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</dd>
+                    <dt class="col-sm-5">Địa chỉ</dt>
+                    <dd class="col-sm-7">@(Model.Address ?? "Chưa cập nhật")</dd>
+                    <dt class="col-sm-5">Ngày tạo</dt>
+                    <dd class="col-sm-7">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(Model.BusinessName) || !string.IsNullOrWhiteSpace(Model.BusinessPhone))
+                {
+                    <hr />
+                    <h3 class="h6">Thông tin kinh doanh</h3>
+                    <div class="small">@Model.BusinessName</div>
+                    <div class="small text-muted">@Model.BusinessPhone</div>
+                }
+
+                <hr />
+                <div class="d-flex gap-2 flex-wrap">
+                    @if (Model.IsActive)
+                    {
+                        <form method="post" asp-area="Admin" asp-controller="UserManagement" asp-action="SetActive" data-confirm="Bạn có chắc muốn khóa tài khoản này không?">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="false" />
+                            <button class="btn btn-outline-danger"><i class="bi bi-lock"></i> Khóa tài khoản</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post" asp-area="Admin" asp-controller="UserManagement" asp-action="SetActive">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="true" />
+                            <button class="btn btn-outline-success"><i class="bi bi-unlock"></i> Mở khóa tài khoản</button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            @if (Model.Roles.Contains(AppConstants.Roles.Owner))
+            {
+                <div class="card">
+                    <div class="card-header"><h2 class="h5 mb-0">Cụm sân (@Model.ComplexCount)</h2></div>
+                    <div class="list-group list-group-flush">
+                        @if (Model.Complexes.Count == 0)
+                        {
+                            <div class="p-3 text-muted small">Chưa có cụm sân.</div>
+                        }
+                        @foreach (var complex in Model.Complexes)
+                        {
+                            <div class="list-group-item">
+                                <div class="fw-semibold">@complex.Name</div>
+                                <div class="small text-muted">@complex.Address · @complex.CourtCount sân</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header"><h2 class="h5 mb-0">Booking liên quan (@Model.BookingCount)</h2></div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead><tr><th>Mã booking</th><th>Ngày</th><th>Sân</th><th>Tiền</th><th>Trạng thái</th></tr></thead>
+                        <tbody>
+                        @if (Model.Bookings.Count == 0)
+                        {
+                            <tr><td colspan="5" class="text-center text-muted py-4">Chưa có booking.</td></tr>
+                        }
+                        @foreach (var booking in Model.Bookings)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@booking.BookingCode</td>
+                                <td>@booking.BookingDate.ToString("dd/MM/yyyy")</td>
+                                <td>@booking.CourtName<br /><small class="text-muted">@booking.ComplexName</small></td>
+                                <td>@booking.TotalAmount.ToString("#,##0") ₫</td>
+                                <td><span class="badge text-bg-light border">@booking.Status</span><br /><small>@booking.PaymentStatus</small></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                @if (Model.BookingCount > Model.Bookings.Count)
+                {
+                    <div class="card-footer small text-muted">Chỉ hiển thị 50 booking gần nhất.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

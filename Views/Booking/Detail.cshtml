@@ -1,0 +1,336 @@
+@* File: Views/Booking/Detail.cshtml *@
+@model BookingDetailViewModel
+@{
+    ViewData["Title"] = $"Chi tiết đặt sân {Model.BookingCode}";
+    ViewData["MetaDescription"] = "Thông tin chi tiết một lịch đặt sân.";
+
+    var isPending = Model.Status == (int)BookingStatus.Pending;
+    var isCancelled = Model.Status == (int)BookingStatus.Cancelled;
+    var isCompleted = Model.Status == (int)BookingStatus.Completed;
+    var hasImage = !string.IsNullOrWhiteSpace(Model.CourtImageUrl);
+}
+
+<div class="container py-4">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Booking" asp-action="MyBookings">Lịch đặt sân</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.BookingCode</li>
+        </ol>
+    </nav>
+
+    <!-- ============ HEADER ============ -->
+    <div class="card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                    <span class="badge @Model.StatusBadgeClass">@Model.StatusText</span>
+                    <span class="chip chip-outline">@Model.PaymentStatusText</span>
+                    <span class="chip chip-outline">@Model.PaymentMethodText</span>
+                </div>
+                <h1 class="h4 mb-1">Đặt sân @Model.CourtName</h1>
+                <div class="text-muted small">
+                    Mã đặt sân: <span class="code-badge">@Model.BookingCode</span>
+                    @if (!string.IsNullOrWhiteSpace(Model.BookingGroupCode))
+                    {
+                        <span class="ms-2">Mã nhóm: @Model.BookingGroupCode</span>
+                    }
+                </div>
+            </div>
+
+            <div class="text-end">
+                <div class="text-muted small">Thành tiền</div>
+                <div class="fs-4 fw-bold text-accent">@Model.TotalAmount.ToString("#,##0") ₫</div>
+            </div>
+        </div>
+
+        @if (isPending && Model.PaymentDeadline.HasValue && Model.BankTransferGroupCode is null)
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-2 mt-3 mb-0">
+                <i class="bi bi-hourglass-split"></i>
+                <div>
+                    Hoàn tất thanh toán trước <strong>@Model.PaymentDeadline.Value.ToString("HH:mm dd/MM/yyyy")</strong>
+                    để giữ khung giờ.
+                    <span class="fw-semibold text-danger" id="payDeadline"></span>
+                </div>
+            </div>
+        }
+
+        @if (isCancelled)
+        {
+            <div class="alert alert-danger mt-3 mb-0">
+                <i class="bi bi-x-circle"></i>
+                Lịch đặt này đã bị hủy
+                @if (Model.CancelledAt.HasValue)
+                {
+                    <span> lúc @Model.CancelledAt.Value.ToString("HH:mm dd/MM/yyyy")</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CancelledBy))
+                {
+                    <span> bởi <strong>@Model.CancelledBy</strong></span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.CancellationReason))
+                {
+                    <div class="small mt-1">Lý do: @Model.CancellationReason</div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <!-- ============ THÔNG TIN SÂN ============ -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="card-title"><i class="bi bi-fire text-primary"></i> Thông tin sân</h2>
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            @if (hasImage)
+                            {
+                                <img class="court-card-img rounded" style="height: 140px; width: 100%;"
+                                     src="@Model.CourtImageUrl" alt="@Model.CourtName" />
+                            }
+                            else
+                            {
+                                <div class="court-card-placeholder rounded" style="height: 140px; font-size: 2rem;">
+                                    <i class="bi bi-fire"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-sm-8">
+                            <h3 class="h6 mb-1">
+                                <a class="text-decoration-none" asp-controller="Court" asp-action="Detail"
+                                   asp-route-id="@Model.CourtId">@Model.CourtName</a>
+                            </h3>
+                            <ul class="info-list">
+                                <li><i class="bi bi-badge-ad"></i> <span>@Model.SportTypeName</span></li>
+                                <li><i class="bi bi-building"></i> <span>@Model.ComplexName</span></li>
+                                <li><i class="bi bi-geo-alt-fill"></i> <span>@Model.ComplexAddress</span></li>
+                                @if (!string.IsNullOrWhiteSpace(Model.ComplexPhone))
+                                {
+                                    <li>
+                                        <i class="bi bi-telephone-fill"></i>
+                                        <a href="tel:@Model.ComplexPhone.Replace(" ", "")">@Model.ComplexPhone</a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ THANH TOÁN ============ -->
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="card-title"><i class="bi bi-receipt text-primary"></i> Thanh toán</h2>
+                    <dl class="mb-0">
+                        <div class="summary-row"><dt>Phương thức</dt><dd>@Model.PaymentMethodText</dd></div>
+                        <div class="summary-row"><dt>Trạng thái</dt><dd>@Model.PaymentStatusText</dd></div>
+                        <div class="summary-row">
+                            <dt>Tổng tiền</dt>
+                            <dd class="fw-bold text-accent">@Model.TotalAmount.ToString("#,##0") ₫</dd>
+                        </div>
+                    </dl>
+
+                    @if (Model.Payments.Count > 0)
+                    {
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Mã giao dịch</th>
+                                        <th>Phương thức</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end">Số tiền</th>
+                                        <th>Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var payment in Model.Payments)
+                                    {
+                                        <tr>
+                                            <td class="booking-code">@payment.TransactionCode</td>
+                                            <td>@payment.MethodText</td>
+                                            <td><span class="badge @payment.StatusBadgeClass">@payment.StatusText</span></td>
+                                            <td class="text-end">@payment.Amount.ToString("#,##0") ₫</td>
+                                            <td class="text-muted small">
+                                                @(payment.PaidAt?.ToString("HH:mm dd/MM/yyyy")
+                                                  ?? payment.CreatedAt.ToString("HH:mm dd/MM/yyyy"))
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-muted small mt-2 mb-0">
+                            <i class="bi bi-info-circle"></i> Mã giao dịch dùng khi cần đối chiếu với bộ phận chăm sóc khách hàng.
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0 mt-2">
+                            Chưa có giao dịch nào được ghi nhận cho lịch đặt này.
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- ============ ĐÁNH GIÁ ============ -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="card-title"><i class="bi bi-star text-primary"></i> Đánh giá sân</h2>
+
+                    @if (Model.Review is not null)
+                    {
+                        <div class="d-flex justify-content-between flex-wrap gap-2">
+                            <div>
+                                <partial name="_StarRating" model="@(new StarRatingViewModel(Model.Review.Rating))" />
+                            </div>
+                            <span class="text-muted small">@Model.Review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Review.Comment))
+                        {
+                            <p class="mt-2 mb-0">@Model.Review.Comment</p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Review.OwnerReply))
+                        {
+                            <div class="review-owner-reply">
+                                <strong><i class="bi bi-reply-fill"></i> Phản hồi từ chủ sân</strong>
+                                @if (Model.Review.OwnerReplyAt.HasValue)
+                                {
+                                    <span class="text-muted"> · @Model.Review.OwnerReplyAt.Value.ToString("dd/MM/yyyy")</span>
+                                }
+                                <div class="mt-1">@Model.Review.OwnerReply</div>
+                            </div>
+                        }
+                    }
+                    else if (Model.CanReview)
+                    {
+                        <p class="text-muted">Bạn đã chơi xong tại sân này. Đánh giá để giúp cộng đồng có thêm thông tin nhé!</p>
+                        <a class="btn btn-accent" asp-controller="Booking" asp-action="Review" asp-route-id="@Model.Id">
+                            <i class="bi bi-star"></i> Đánh giá ngay
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">
+                            Bạn chỉ có thể đánh giá sau khi lịch đặt chuyển sang trạng thái <strong>Hoàn thành</strong>.
+                        </p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ CỘT PHẢI ============ -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body p-4">
+                    <h2 class="card-title h6">Thời gian chơi</h2>
+                    <div class="text-center pb-3">
+                        <div class="fs-5 fw-bold">@Model.TimeRangeText</div>
+                        <div class="text-muted">
+                            <i class="bi bi-calendar-event text-primary"></i>
+                            @Model.BookingDate.ToString("dd/MM/yyyy")
+                            <span class="text-lowercase">@Model.BookingDate.WeekdayName()</span>
+                        </div>
+                    </div>
+
+                    <ul class="status-timeline">
+                        <li>
+                            <span class="dot is-done"></span>
+                            <div class="small fw-semibold">Tạo lịch đặt</div>
+                            <div class="text-muted small">@Model.CreatedAt.ToString("HH:mm dd/MM/yyyy")</div>
+                        </li>
+                        <li>
+                            <span class="dot @(Model.ConfirmedAt.HasValue ? "is-done" : "")"></span>
+                            <div class="small fw-semibold">Chủ sân xác nhận</div>
+                            <div class="text-muted small">
+                                @(Model.ConfirmedAt?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa xác nhận")
+                            </div>
+                        </li>
+                        <li>
+                            <span class="dot @(isCompleted ? "is-done" : "")"></span>
+                            <div class="small fw-semibold">Hoàn thành buổi chơi</div>
+                            <div class="text-muted small">
+                                @(Model.CompletedAt?.ToString("HH:mm dd/MM/yyyy") ?? "Chưa diễn ra")
+                            </div>
+                        </li>
+                        @if (isCancelled)
+                        {
+                            <li>
+                                <span class="dot is-danger"></span>
+                                <div class="small fw-semibold text-danger">Đã hủy</div>
+                                <div class="text-muted small">
+                                    @(Model.CancelledAt?.ToString("HH:mm dd/MM/yyyy") ?? "")
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Notes))
+            {
+                <div class="card mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="card-title h6">Ghi chú của bạn</h2>
+                        <p class="mb-0 text-muted">@Model.Notes</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="card-title h6">Thao tác</h2>
+                    <div class="d-grid gap-2">
+                        @if (Model.CanCancel)
+                        {
+                            <a class="btn btn-outline-danger" asp-controller="Booking" asp-action="Cancel"
+                               asp-route-id="@Model.Id">
+                                <i class="bi bi-x-circle"></i> Hủy lịch đặt
+                            </a>
+                        }
+                        else if (!isCancelled && !isCompleted)
+                        {
+                            <button type="button" class="btn btn-outline-secondary" disabled>
+                                <i class="bi bi-x-circle"></i> Không thể hủy
+                            </button>
+                            @if (!string.IsNullOrWhiteSpace(Model.CancelDisabledReason))
+                            {
+                                <p class="text-muted small mb-0">@Model.CancelDisabledReason</p>
+                            }
+                        }
+
+                        @if (Model.CanReview)
+                        {
+                            <a class="btn btn-accent" asp-controller="Booking" asp-action="Review" asp-route-id="@Model.Id">
+                                <i class="bi bi-star"></i> Đánh giá sân
+                            </a>
+                        }
+
+                        @if (Model.BankTransferGroupCode is { } transferCode)
+                        {
+                            <a class="btn btn-primary" asp-controller="BankTransfer" asp-action="Details" asp-route-code="@transferCode">
+                                <i class="bi bi-qr-code"></i> Chi tiết chuyển khoản
+                            </a>
+                        }
+
+                        <a class="btn btn-outline-primary" asp-controller="Booking" asp-action="MyBookings">
+                            <i class="bi bi-arrow-left"></i> Về lịch đặt của tôi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            startPaymentCountdown('payDeadline', '@(Model.PaymentDeadline?.ToString("yyyy-MM-ddTHH:mm:ss'+07:00'"))');
+        });
+    </script>
+}

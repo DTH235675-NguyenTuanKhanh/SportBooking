@@ -1,0 +1,257 @@
+@* File: Views/Court/Search.cshtml *@
+@model CourtSearchViewModel
+@inject Microsoft.Extensions.Options.IOptions<BookingSettings> BookingOptions
+@{
+    ViewData["Title"] = "Tìm sân thể thao";
+    ViewData["MetaDescription"] = "Tìm sân bóng đá, cầu lông, tennis, pickleball theo khu vực, ngày và khung giờ. So sánh giá và đặt sân online.";
+
+    ViewData["SearchReturnUrl"] = Context.Request.Path + Context.Request.QueryString;
+    ViewData["SearchBookingDate"] = Model.BookingDate?.ToString("yyyy-MM-dd");
+    var today = ScheduleGuard.Now.Date;
+    var maxDate = today.AddDays(BookingOptions.Value.MaxAdvanceBookingDays);
+
+    var routeValues = new Dictionary<string, string?>
+    {
+        ["Keyword"] = Model.Keyword,
+        ["SportTypeId"] = Model.SportTypeId?.ToString(),
+        ["Province"] = Model.Province,
+        ["District"] = Model.District,
+        ["BookingDate"] = Model.BookingDate?.ToString("yyyy-MM-dd"),
+        ["TimeSlotId"] = Model.TimeSlotId?.ToString(),
+        ["MinPrice"] = Model.MinPrice?.ToString("0.##"),
+        ["MaxPrice"] = Model.MaxPrice?.ToString("0.##"),
+        ["SortBy"] = Model.SortBy,
+        ["PageSize"] = Model.PageSize.ToString()
+    };
+
+    var activeFilters = new List<(string Label, Dictionary<string, string?> Remove)>();
+    if (!string.IsNullOrWhiteSpace(Model.Keyword))
+    {
+        activeFilters.Add(($"Từ khóa: “{Model.Keyword}”", new Dictionary<string, string?> { ["Keyword"] = null }));
+    }
+    if (Model.SportTypeId > 0)
+    {
+        var name = Model.SportTypes.FirstOrDefault(t => t.Id == Model.SportTypeId)?.Name ?? "loại sân";
+        activeFilters.Add(($"Môn: {name}", new Dictionary<string, string?> { ["SportTypeId"] = null }));
+    }
+    if (!string.IsNullOrWhiteSpace(Model.Province))
+    {
+        activeFilters.Add((Model.Province, new Dictionary<string, string?> { ["Province"] = null, ["District"] = null }));
+    }
+    if (!string.IsNullOrWhiteSpace(Model.District))
+    {
+        activeFilters.Add((Model.District, new Dictionary<string, string?> { ["District"] = null }));
+    }
+    if (Model.BookingDate.HasValue)
+    {
+        activeFilters.Add(($"Ngày: {Model.BookingDate.Value:dd/MM/yyyy}", new Dictionary<string, string?> { ["BookingDate"] = null, ["TimeSlotId"] = null }));
+    }
+    if (Model.TimeSlotId > 0)
+    {
+        var label = Model.TimeSlots.FirstOrDefault(t => t.Id == Model.TimeSlotId)?.DisplayText;
+        activeFilters.Add(($"Khung giờ: {(label ?? Model.TimeSlotId.ToString())}", new Dictionary<string, string?> { ["TimeSlotId"] = null }));
+    }
+    if (Model.MinPrice > 0)
+    {
+        activeFilters.Add(($"Giá từ {Model.MinPrice.Value:N0} ₫", new Dictionary<string, string?> { ["MinPrice"] = null }));
+    }
+    if (Model.MaxPrice > 0)
+    {
+        activeFilters.Add(($"Giá đến {Model.MaxPrice.Value:N0} ₫", new Dictionary<string, string?> { ["MaxPrice"] = null }));
+    }
+
+    string BuildFilterUrl(Dictionary<string, string?> overrides)
+    {
+        var merged = routeValues
+            .Where(kv => !overrides.ContainsKey(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        foreach (var (key, value) in overrides)
+        {
+            merged[key] = value;
+        }
+
+        var query = merged
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+            .Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value!)}")
+            .ToList();
+
+        return query.Count == 0 ? "/Court/Search" : "/Court/Search?" + string.Join("&", query);
+    }
+
+    // Danh sách select: phần tử rỗng đặt làm lựa chọn mặc định.
+    var sportTypeItems = new List<SelectListItem> { new() { Value = "", Text = "Tất cả môn" } };
+    sportTypeItems.AddRange(Model.SportTypes.Select(t =>
+        new SelectListItem(t.Name, t.Id.ToString(), Model.SportTypeId == t.Id)));
+
+    var provinceItems = new List<SelectListItem> { new() { Value = "", Text = "Tất cả khu vực" } };
+    provinceItems.AddRange(Model.Provinces.Select(p =>
+        new SelectListItem(p, p, string.Equals(Model.Province, p, StringComparison.Ordinal))));
+
+    var districtItems = new List<SelectListItem> { new() { Value = "", Text = "Tất cả quận/huyện" } };
+    if (!string.IsNullOrWhiteSpace(Model.District))
+    {
+        districtItems.Add(new SelectListItem(Model.District, Model.District, true));
+    }
+
+    var timeSlotItems = new List<SelectListItem> { new() { Value = "", Text = "Mọi khung giờ" } };
+    timeSlotItems.AddRange(Model.TimeSlots.Select(t =>
+        new SelectListItem(t.DisplayText, t.Id.ToString(), Model.TimeSlotId == t.Id)));
+}
+
+<div class="container py-4 search-page">
+    <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb small mb-3">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Tìm sân</li>
+        </ol>
+    </nav>
+
+    <header class="page-heading search-heading">
+        <div>
+            <h1>Tìm sân thể thao</h1>
+            <p class="text-muted mb-0">Lọc theo môn, khu vực và giờ chơi để xem các sân phù hợp.</p>
+        </div>
+    </header>
+    <div class="row g-4">
+        <!-- ============ BỘ LỌC ============ -->
+        <div class="col-lg-3">
+            <div class="filter-sidebar">
+            <button class="btn btn-outline-primary w-100 d-lg-none filter-toggle" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#courtFilters" aria-expanded="false" aria-controls="courtFilters">
+                <i class="bi bi-sliders" aria-hidden="true"></i> Bộ lọc tìm sân (@activeFilters.Count) <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
+            </button>
+            <div class="collapse d-lg-block" id="courtFilters">
+            <form class="card p-3 search-filter-form" asp-controller="Court" asp-action="Search" method="get">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0"><i class="bi bi-funnel" aria-hidden="true"></i> Bộ lọc tìm sân</h2>
+                    <a class="small text-decoration-none" asp-controller="Court" asp-action="Search">Xóa hết</a>
+                </div>
+
+                <div class="filter-section">
+                    <label class="filter-section-title" asp-for="Keyword">Từ khóa</label>
+                    <input asp-for="Keyword" class="form-control" placeholder="Tên sân, địa chỉ..."
+                           autocomplete="off" />
+                </div>
+
+                <div class="filter-section">
+                    <partial name="_SportPicker" model="@(new SportPickerViewModel { Options = Model.SportTypes, SelectedId = Model.SportTypeId })" />
+                </div>
+
+                <div class="filter-section">
+                    <label class="filter-section-title" asp-for="Province">Tỉnh / Thành phố</label>
+                    <select asp-for="Province" class="form-select" asp-items="provinceItems"></select>
+
+                    <label class="filter-section-title mt-2" asp-for="District">Quận / Huyện</label>
+                    <select asp-for="District" class="form-select" asp-items="districtItems"></select>
+                </div>
+
+                <div class="filter-section">
+                    <label class="filter-section-title" asp-for="BookingDate">Ngày chơi</label>
+                    <input asp-for="BookingDate" class="form-control"
+                           type="date" min="@today.ToString("yyyy-MM-dd")" max="@maxDate.ToString("yyyy-MM-dd")" />
+
+                    <label class="filter-section-title mt-2" asp-for="TimeSlotId">Khung giờ</label>
+                    <select asp-for="TimeSlotId" class="form-select" asp-items="timeSlotItems"></select>
+                </div>
+
+                <div class="filter-section">
+                    <p class="filter-section-title mb-2">Giá ngày thường (VNĐ/khung)</p>
+                    <div class="input-group mb-2">
+                        <label class="input-group-text" for="MinPrice">Từ</label>
+                        <input asp-for="MinPrice" class="form-control" type="number" min="0" step="1" placeholder="0" />
+                    </div>
+                    <div class="input-group">
+                        <label class="input-group-text" for="MaxPrice">Đến</label>
+                        <input asp-for="MaxPrice" class="form-control" type="number" min="0" step="1" placeholder="1.000.000" />
+                    </div>
+                </div>
+
+                <input type="hidden" name="SortBy" value="@Model.SortBy" />
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+
+                <button type="submit" class="btn btn-primary w-100 mt-3">
+                    <i class="bi bi-search" aria-hidden="true"></i> Áp dụng bộ lọc
+                </button>
+            </form>
+            </div>
+            </div>
+        </div>
+
+        <!-- ============ KẾT QUẢ ============ -->
+        <div class="col-lg-9">
+            <div class="search-results-bar">
+                <div>
+                    <h2 class="h5 mb-1" id="searchResultsTitle">
+                        @(Model.TotalResults > 0
+                            ? $"{Model.TotalResults} sân phù hợp"
+                            : "Không tìm thấy sân phù hợp")
+                    </h2>
+                    <span class="text-muted small">
+                        @(Model.BookingDate.HasValue
+                            ? $"Kiểm tra khung giờ trống ngày {Model.BookingDate.Value:dd/MM/yyyy}"
+                            : "Chọn ngày chơi để xem khung giờ còn trống")
+                    </span>
+                </div>
+
+                <form class="search-sort-form d-flex align-items-center gap-2" asp-controller="Court" asp-action="Search" method="get">
+                    @foreach (var (key, value) in routeValues.Where(kv => kv.Key != "SortBy" && !string.IsNullOrWhiteSpace(kv.Value)))
+                    {
+                        <input type="hidden" name="@key" value="@value" />
+                    }
+                    <label class="text-muted small text-nowrap" for="SortBy">Sắp xếp</label>
+                    <select class="form-select form-select-sm" id="SortBy" name="SortBy" >
+                        <option value="rating_desc" selected="@(Model.SortBy == "rating_desc")">Đánh giá cao nhất</option>
+                        <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Giá thấp → cao</option>
+                        <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Giá cao → thấp</option>
+                        <option value="newest" selected="@(Model.SortBy == "newest")">Mới nhất</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-secondary">Sắp xếp</button>
+                </form>
+            </div>
+
+            @if (activeFilters.Count > 0)
+            {
+                <div class="active-filters" aria-label="Điều kiện đang lọc">
+                    @foreach (var (label, remove) in activeFilters)
+                    {
+                        <a class="chip filter-chip" href="@BuildFilterUrl(remove)" aria-label="Bỏ lọc @label">
+                            <span>@label</span><i class="bi bi-x-lg" aria-hidden="true"></i>
+                        </a>
+                    }
+                    <a class="chip text-danger text-decoration-none" asp-controller="Court" asp-action="Search">
+                        <i class="bi bi-x-circle" aria-hidden="true"></i> Xóa tất cả bộ lọc
+                    </a>
+                </div>
+            }
+
+            @if (Model.Courts.Count == 0)
+            {
+                <partial name="_SearchEmpty" />
+            }
+            else
+            {
+                <div class="row g-3 g-lg-4">
+                    @foreach (var court in Model.Courts)
+                    {
+                        <div class="col-sm-6 col-xl-4">
+                            <partial name="_CourtCard" model="court" />
+                        </div>
+                    }
+                </div>
+
+                <partial name="_Pagination" model="@(new PaginationViewModel
+                {
+                    Page = Model.Page,
+                    TotalPages = Model.TotalPages,
+                    TotalResults = Model.TotalResults,
+                    PageSize = Model.PageSize,
+                    Controller = "Court",
+                    Action = "Search",
+                    RouteValues = routeValues,
+                    ItemLabel = "sân"
+                })" />
+            }
+        </div>
+    </div>
+</div>

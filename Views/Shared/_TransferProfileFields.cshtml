@@ -1,0 +1,57 @@
+@model TransferProfileInput
+<fieldset class="border rounded-3 p-3 mb-3" data-transfer-profile>
+    <legend class="h6">Chuyển khoản cho khách đặt sân</legend>
+    <div class="form-check mb-3">
+        <input asp-for="Enabled" class="form-check-input" />
+        <label asp-for="Enabled" class="form-check-label"></label>
+    </div>
+    <p class="form-text">Dùng chung một tài khoản nhận tiền cho tất cả sân của bạn. Thay đổi chỉ áp dụng cho lượt đặt mới.</p>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label asp-for="BankName" class="form-label"></label>
+            <input asp-for="BankName" class="form-control" maxlength="80" data-transfer-value="bank" />
+            <span asp-validation-for="BankName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="AccountNumber" class="form-label"></label>
+            <input asp-for="AccountNumber" class="form-control" maxlength="30" inputmode="numeric" data-transfer-value="number" />
+            <span asp-validation-for="AccountNumber" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="AccountName" class="form-label"></label>
+            <input asp-for="AccountName" class="form-control" maxlength="100" data-transfer-value="name" />
+            <span asp-validation-for="AccountName" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Qr" class="form-label"></label>
+            <input asp-for="Qr" type="file" class="form-control" accept="image/png,image/jpeg" data-qr-file aria-describedby="qrUploadHelp" />
+            <div class="form-text" id="qrUploadHelp">
+                PNG hoặc JPEG, tối đa 2 MB. @(Model.HasCurrentQr ? "Để trống để giữ mã QR đang dùng." : "Hãy chọn ảnh QR do ngân hàng cung cấp.")
+            </div>
+            <span asp-validation-for="Qr" class="text-danger small"></span>
+        </div>
+        <div class="col-12">
+            <div class="card p-3">
+                <p class="fw-semibold mb-2">Xem trước thông tin khách sẽ nhận</p>
+                <p class="mb-2 text-break"><span data-preview="bank">@Model.BankName</span> · <span data-preview="number">@Model.AccountNumber</span> · <span data-preview="name">@Model.AccountName</span></p>
+                @if (Model.HasCurrentQr)
+                {
+                    <img data-qr-preview data-existing-src="@Url.Action("Qr", "OwnerTransfer")" src="@Url.Action("Qr", "OwnerTransfer")"
+                         alt="Mã QR đang dùng" class="img-fluid rounded bg-white p-2" width="180" />
+                }
+                else
+                {
+                    <img data-qr-preview alt="Xem trước mã QR đã chọn" class="img-fluid rounded bg-white p-2" width="180" hidden />
+                }
+                <p data-qr-preview-message class="form-text mb-0" aria-live="polite">Quét thử QR và đối chiếu thông tin trước khi lưu.</p>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <input asp-for="Confirmed" class="form-check-input" data-qr-confirmation />
+                <label asp-for="Confirmed" class="form-check-label"></label>
+            </div>
+            <span asp-validation-for="Confirmed" class="text-danger small"></span>
+        </div>
+    </div>
+</fieldset>

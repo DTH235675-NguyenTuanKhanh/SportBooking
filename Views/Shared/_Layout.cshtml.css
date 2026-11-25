@@ -1,0 +1,27 @@
+﻿/* File: Views/Shared/_Layout.cshtml.css
+   CSS accoppiato (scoped) al layout.
+   ATTENZIONE: le regole qui sotto vengono emesse con un attributo di scope
+   (es. .btn-primary[b-xxxx]) e quindi hanno specificita' PIU' alta di site.css.
+   Per questo motivo questo file NON deve contenere regole di tema (colori, footer,
+   tipografia): tutto lo stile condivisuto vive in wwwroot/css/site.css.
+   Qui restano solo regole strettamente legate alla struttura del layout. */
+
+/* Brand: niente a-capo spezzato (il default dello scaffold usava word-break: break-all). */
+a.navbar-brand {
+  white-space: nowrap;
+}
+
+/* Colonna di layout: spinge il footer in fondo alla pagina anche con pochi contenuti. */
+.page-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main.main-content {
+  flex: 1 0 auto;
+}
+
+footer.footer {
+  flex-shrink: 0;
+}
